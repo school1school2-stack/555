@@ -418,7 +418,7 @@ a.alshehri@moe.gov.sa" class="w-full border border-slate-300 rounded-xl p-3 text
                     
                     <div class="bg-blue-50 border border-blue-200 rounded-xl p-3 mt-2 text-xs text-blue-900 flex items-start gap-2">
                         <i class="fa-solid fa-circle-info text-blue-800 text-sm mt-0.5"></i>
-                        <span><strong>طريقة التنسيق:</strong> الصق القائمة بحيث يكون <strong>اسم المعلم في سطر</strong>، و<strong>بريده الإلكتروني في السطر الذي يليه مباشرة</strong>.</span>
+                        <span><strong>طريقة التنسيق:</strong> الصق القائمة بحيث يكون <strong>اسم المعلم في سطر</strong>، و<strong>بريده الإلكتروني في السطر الذي يليه مباشرة</strong>[cite: 1].</span>
                     </div>
                 </div>
             </div>
@@ -519,7 +519,7 @@ a.alshehri@moe.gov.sa" class="w-full border border-slate-300 rounded-xl p-3 text
     </div>
 
     <script>
-        // إعدادات Firebase الخاصة بمشروعك (aaaa-a2380 / AAAA) من الصورة
+        // إعدادات Firebase الخاصة بمشروعك (aaaa-a2380 / AAAA)
         const firebaseConfig = {
             apiKey: "AIzaSyDhd5CSkNMoppGby6uKxHsQC",
             authDomain: "aaaa-a2380.firebaseapp.com",
@@ -534,4 +534,986 @@ a.alshehri@moe.gov.sa" class="w-full border border-slate-300 rounded-xl p-3 text
         // Application State
         let isReadOnly = false; 
         let activeGroup = 'الجميع'; 
-        let groups = ['العلوم', 'الرياضيات', 'اللغة العربية', 'التربية الإسلامية', 'الحاسب الآلي'];
+        let groups = ['العلوم', 'الرياضيات', 'اللغة العربية', 'التربية الإسلامية', 'الحاسب الآلي']; 
+        let students = []; 
+        let allowedStudentsPreset = []; 
+        let attendanceData = {}; 
+        let currentDate = new Date().toISOString().split('T')[0];
+        let allAttendanceRecords = {}; 
+
+        // DOM Elements
+        const selectedDateInput = document.getElementById('selectedDate');
+        const studentsTableBody = document.getElementById('studentsTableBody');
+        const emptyState = document.getElementById('emptyState');
+        const searchInput = document.getElementById('searchInput');
+        const addModal = document.getElementById('addModal');
+        const bulkNamesInput = document.getElementById('bulkNamesInput');
+        const quickStudentInput = document.getElementById('quickStudentInput');
+        const presetStudentsList = document.getElementById('presetStudentsList');
+        const addQuickStudentBtn = document.getElementById('addQuickStudentBtn');
+        const classSelector = document.getElementById('classSelector');
+        const modalGroupSelector = document.getElementById('modalGroupSelector');
+
+        window.addEventListener('DOMContentLoaded', () => {
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.get('mode') === 'view') {
+                isReadOnly = true;
+                applyReadOnlyMode();
+            }
+            const paramGroup = urlParams.get('group');
+            if (paramGroup) {
+                activeGroup = decodeURIComponent(paramGroup).trim();
+            }
+
+            selectedDateInput.value = currentDate;
+            document.getElementById('singleReportDate').value = currentDate;
+
+            const today = new Date();
+            const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1).toISOString().split('T')[0];
+            document.getElementById('reportStartDate').value = firstDayOfMonth;
+            document.getElementById('reportEndDate').value = currentDate;
+
+            initCloudSync();
+            setupEventListeners();
+            updateShareUrl();
+        });
+
+        function applyReadOnlyMode() {
+            document.getElementById('readOnlyBanner').classList.remove('hidden');
+            document.getElementById('manageGroupsBtn').classList.add('hidden');
+            document.getElementById('quickAddControls').classList.add('hidden');
+            document.getElementById('openAddModalBtn').classList.add('hidden');
+            document.getElementById('shareManagerBtn').classList.add('hidden');
+            document.getElementById('tabsContainer').classList.add('hidden');
+            
+            document.getElementById('dailySection').classList.add('hidden');
+            document.getElementById('reportsSection').classList.remove('hidden');
+        }
+
+        function updateShareUrl() {
+            let baseUrl = window.location.origin + window.location.pathname;
+            const shareUrl = `${baseUrl}?mode=view&group=${encodeURIComponent(activeGroup)}`;
+            document.getElementById('shareUrlInput').value = shareUrl;
+        }
+
+        function switchTab(tab) {
+            const dailySec = document.getElementById('dailySection');
+            const reportsSec = document.getElementById('reportsSection');
+            const dailyBtn = document.getElementById('dailyTabBtn');
+            const reportsBtn = document.getElementById('reportsTabBtn');
+
+            if (tab === 'daily') {
+                dailySec.classList.remove('hidden');
+                reportsSec.classList.add('hidden');
+                dailyBtn.className = "tab-active py-3 px-6 text-sm font-medium transition flex items-center gap-2";
+                reportsBtn.className = "text-slate-500 hover:text-blue-900 py-3 px-6 text-sm font-medium transition flex items-center gap-2";
+            } else {
+                dailySec.classList.add('hidden');
+                reportsSec.classList.remove('hidden');
+                reportsBtn.className = "tab-active py-3 px-6 text-sm font-medium transition flex items-center gap-2";
+                dailyBtn.className = "text-slate-500 hover:text-blue-900 py-3 px-6 text-sm font-medium transition flex items-center gap-2";
+                generateReport();
+                renderSingleDayReport();
+            }
+        }
+
+        function getStudentEmail(data, docId) {
+            let rawEmail = (data.email || '').trim();
+            if (rawEmail.includes('@')) {
+                let parts = rawEmail.split(/[\s,]+/);
+                let foundEmail = parts.find(p => p.includes('@') && p.includes('.'));
+                if (foundEmail) return foundEmail.toLowerCase();
+            }
+            return `t${docId.substring(0, 6)}@moe.gov.sa`;
+        }
+
+        function initCloudSync() {
+            const cloudBadge = document.getElementById('cloudBadge');
+            const cloudStatus = document.getElementById('cloudStatus');
+            const cloudIcon = document.getElementById('cloudIcon');
+
+            db.collection("attendance_groups").doc("list").onSnapshot((doc) => {
+                if (doc.exists && doc.data().groups && doc.data().groups.length > 0) {
+                    groups = doc.data().groups.map(g => g.trim());
+                } else {
+                    groups = ['العلوم', 'الرياضيات', 'اللغة العربية', 'التربية الإسلامية', 'الحاسب الآلي'];
+                    db.collection("attendance_groups").doc("list").set({ groups: groups });
+                }
+                updateGroupDropdowns();
+            }, (error) => {
+                console.error("Groups fetch error:", error);
+                updateGroupDropdowns();
+            });
+
+            db.collection("attendance_students").onSnapshot((snapshot) => {
+                students = [];
+                snapshot.forEach(doc => {
+                    const data = doc.data();
+                    students.push({
+                        id: doc.id,
+                        name: (data.name || "معلم بدون اسم").trim(),
+                        email: getStudentEmail(data, doc.id),
+                        group: (data.group || groups[0] || 'عام').trim()
+                    });
+                });
+
+                students.sort((a, b) => a.name.localeCompare(b.name, 'ar'));
+
+                cloudStatus.textContent = "السحابة: متصل ومزامن (aaaa-a2380)";
+                cloudIcon.className = "fa-solid fa-cloud text-emerald-400";
+                
+                fetchAttendanceForDate(currentDate);
+            }, (error) => {
+                console.error("Students fetch error:", error);
+                cloudStatus.textContent = "خطأ الاتصال بالسحابة";
+                cloudIcon.className = "fa-solid fa-cloud text-rose-400";
+            });
+
+            db.collection("attendance_records").onSnapshot((snapshot) => {
+                allAttendanceRecords = {};
+                snapshot.forEach(doc => {
+                    allAttendanceRecords[doc.id] = doc.data().records || {};
+                });
+                renderSingleDayReport();
+                if (isReadOnly) generateReport();
+            });
+        }
+
+        function updateGroupDropdowns() {
+            classSelector.innerHTML = '<option value="الجميع">جميع التخصصات والأقسام</option>';
+            groups.forEach(grp => {
+                const opt = document.createElement('option');
+                opt.value = grp;
+                opt.textContent = grp;
+                if (grp.trim() === activeGroup.trim()) opt.selected = true;
+                classSelector.appendChild(opt);
+            });
+
+            modalGroupSelector.innerHTML = '';
+            groups.forEach(grp => {
+                const opt = document.createElement('option');
+                opt.value = grp;
+                opt.textContent = grp;
+                if (activeGroup !== 'الجميع' && grp.trim() === activeGroup.trim()) opt.selected = true;
+                modalGroupSelector.appendChild(opt);
+            });
+
+            renderGroupsManageList();
+        }
+
+        function changeActiveGroup(groupName) {
+            activeGroup = groupName.trim();
+            updateShareUrl();
+            renderTable();
+            generateReport();
+            renderSingleDayReport();
+        }
+
+        function openManageGroupsModal() {
+            renderGroupsManageList();
+            document.getElementById('groupsModal').classList.remove('hidden');
+        }
+
+        function closeManageGroupsModal() {
+            document.getElementById('groupsModal').classList.add('hidden');
+        }
+
+        function copyCurrentClassData() {
+            if (activeGroup === 'الجميع') {
+                showToast('يرجى تحديد قسم معين للنسخ', 'warning');
+                return;
+            }
+            const activeStudents = students.filter(s => s.group.trim() === activeGroup.trim());
+            if (activeStudents.length === 0) {
+                showToast('لا يوجد معلمون في هذا القسم', 'warning');
+                return;
+            }
+
+            let textToCopy = "";
+            activeStudents.forEach(st => {
+                textToCopy += `${st.name}\n${st.email}\n`;
+            });
+
+            navigator.clipboard.writeText(textToCopy.trim()).then(() => {
+                showToast('تم نسخ أسماء وإيميلات المعلمين 📋', 'success');
+            }).catch(() => {
+                showToast('فشل النسخ تلقائياً', 'warning');
+            });
+        }
+
+        function openAddModalWithClass() {
+            if (activeGroup === 'الجميع') {
+                modalGroupSelector.value = groups[0] || '';
+            } else {
+                modalGroupSelector.value = activeGroup;
+            }
+            const activeInGroup = students.filter(s => {
+                const sGroup = (s.group || '').trim();
+                const actGroup = activeGroup.trim();
+                return actGroup === 'الجميع' || sGroup === actGroup;
+            });
+            let textValue = "";
+            activeInGroup.forEach(s => {
+                textValue += `${s.name}\n${s.email}\n`;
+            });
+            bulkNamesInput.value = textValue;
+            addModal.classList.remove('hidden');
+        }
+
+        async function deleteCurrentClassData() {
+            if (activeGroup === 'الجميع') {
+                showToast('يرجى تحديد قسم معين للحذف', 'warning');
+                return;
+            }
+            const activeStudents = students.filter(s => s.group.trim() === activeGroup.trim());
+            if (activeStudents.length === 0) {
+                showToast('لا يوجد معلمون في هذا القسم للحذف', 'warning');
+                return;
+            }
+
+            if (!confirm(`هل أنت متأكد من حذف جميع معلمي قسم (${activeGroup}) من السحابة؟`)) return;
+
+            try {
+                const batch = db.batch();
+                activeStudents.forEach(st => {
+                    const ref = db.collection("attendance_students").doc(st.id);
+                    batch.delete(ref);
+                });
+                await batch.commit();
+                showToast('تم حذف أسماء المعلمين بنجاح من السحابة', 'info');
+            } catch (err) {
+                console.error("Delete group error:", err);
+                showToast('حدث خطأ أثناء الحذف', 'warning');
+            }
+        }
+
+        async function createNewGroup() {
+            const input = document.getElementById('newGroupNameInput');
+            const newName = input.value.trim();
+            if (!newName) return;
+
+            if (groups.includes(newName)) {
+                showToast('هذا القسم موجود بالفعل', 'warning');
+                return;
+            }
+
+            groups.push(newName);
+            input.value = '';
+
+            try {
+                await db.collection("attendance_groups").doc("list").set({ groups: groups });
+                showToast('تمت إضافة القسم بنجاح ☁️', 'cloud');
+                updateGroupDropdowns();
+            } catch (err) {
+                showToast('حدث خطأ أثناء الحفظ', 'warning');
+            }
+        }
+
+        async function deleteGroup(groupName) {
+            if (groups.length <= 1) {
+                showToast('يجب الاحتفاظ بقسم واحد على الأقل', 'warning');
+                return;
+            }
+
+            if (!confirm(`هل أنت متأكد من حذف قسم (${groupName})؟`)) return;
+
+            groups = groups.filter(g => g !== groupName);
+            if (activeGroup === groupName) activeGroup = 'الجميع';
+
+            try {
+                await db.collection("attendance_groups").doc("list").set({ groups: groups });
+                showToast('تم حذف القسم بنجاح', 'info');
+                updateGroupDropdowns();
+            } catch (err) {
+                showToast('حدث خطأ أثناء الحذف', 'warning');
+            }
+        }
+
+        async function renameGroup(oldName) {
+            const newName = prompt(`أدخل الاسم الجديد للقسم (${oldName}):`, oldName);
+            if (!newName || newName.trim() === '' || newName.trim() === oldName) return;
+
+            const trimmedNewName = newName.trim();
+
+            if (groups.includes(trimmedNewName)) {
+                showToast('يوجد قسم بنفس هذا الاسم بالفعل', 'warning');
+                return;
+            }
+
+            groups = groups.map(g => g === oldName ? trimmedNewName : g);
+            if (activeGroup === oldName) activeGroup = trimmedNewName;
+
+            try {
+                await db.collection("attendance_groups").doc("list").set({ groups: groups });
+
+                const studentsToUpdate = students.filter(s => s.group === oldName);
+                if (studentsToUpdate.length > 0) {
+                    const batch = db.batch();
+                    studentsToUpdate.forEach(student => {
+                        const ref = db.collection("attendance_students").doc(student.id);
+                        batch.update(ref, { group: trimmedNewName });
+                    });
+                    await batch.commit();
+                }
+
+                showToast(`تم تغيير اسم القسم إلى (${trimmedNewName}) ☁️`, 'cloud');
+                updateGroupDropdowns();
+            } catch (err) {
+                showToast('حدث خطأ أثناء التحديث', 'warning');
+            }
+        }
+
+        function renderGroupsManageList() {
+            const container = document.getElementById('groupsListContainer');
+            if (!container) return;
+            container.innerHTML = '';
+
+            groups.forEach(grp => {
+                const count = students.filter(s => s.group === grp).length;
+                const li = document.createElement('li');
+                li.className = 'flex items-center justify-between p-2.5 bg-slate-50 rounded-xl border border-slate-200 text-xs font-bold';
+                
+                const groupTitle = document.createElement('div');
+                groupTitle.className = 'flex items-center gap-2';
+                groupTitle.innerHTML = `
+                    <i class="fa-solid fa-layer-group text-blue-900"></i>
+                    <span class="text-slate-800">${escapeHtml(grp)}</span>
+                    <span class="text-[10px] bg-blue-100 text-blue-900 px-2 py-0.5 rounded-full">${count} معلم</span>
+                `;
+
+                const btnContainer = document.createElement('div');
+                btnContainer.className = 'flex items-center gap-1';
+
+                const editBtn = document.createElement('button');
+                editBtn.className = 'text-blue-900 hover:text-blue-700 p-1.5 hover:bg-blue-50 rounded-lg transition';
+                editBtn.title = 'تعديل اسم القسم';
+                editBtn.innerHTML = '<i class="fa-solid fa-pen-to-square"></i>';
+                editBtn.onclick = () => renameGroup(grp);
+
+                const deleteBtn = document.createElement('button');
+                deleteBtn.className = 'text-rose-500 hover:text-rose-700 p-1.5 hover:bg-rose-50 rounded-lg transition';
+                deleteBtn.title = 'حذف القسم';
+                deleteBtn.innerHTML = '<i class="fa-solid fa-trash-can"></i>';
+                deleteBtn.onclick = () => deleteGroup(grp);
+
+                btnContainer.appendChild(editBtn);
+                btnContainer.appendChild(deleteBtn);
+
+                li.appendChild(groupTitle);
+                li.appendChild(btnContainer);
+                container.appendChild(li);
+            });
+        }
+
+        function renderSingleDayReport() {
+            const targetDate = document.getElementById('singleReportDate').value;
+            const dayRecords = allAttendanceRecords[targetDate] || {};
+
+            const presentList = document.getElementById('dayPresentList');
+            const absentList = document.getElementById('dayAbsentList');
+            const lateList = document.getElementById('dayLateList');
+            const otherList = document.getElementById('dayOtherList');
+
+            presentList.innerHTML = '';
+            absentList.innerHTML = '';
+            lateList.innerHTML = '';
+            otherList.innerHTML = '';
+
+            let pCount = 0, aCount = 0, lCount = 0, oCount = 0;
+
+            const filteredForReport = students.filter(s => {
+                const sGroup = (s.group || '').trim();
+                const actGroup = activeGroup.trim();
+                return actGroup === 'الجميع' || sGroup === actGroup;
+            });
+
+            filteredForReport.forEach(s => {
+                const status = dayRecords[s.id];
+                const li = document.createElement('li');
+                li.className = 'py-1 px-2 bg-white/10 rounded flex items-center justify-between';
+                li.innerHTML = `<span>${escapeHtml(s.name)}</span><span class="text-[10px] text-blue-200 font-normal">(${escapeHtml(s.group)})</span>`;
+
+                if (status === 'present') {
+                    presentList.appendChild(li);
+                    pCount++;
+                } else if (status === 'absent') {
+                    absentList.appendChild(li);
+                    aCount++;
+                } else if (status === 'late') {
+                    lateList.appendChild(li);
+                    lCount++;
+                } else {
+                    if (status === 'excused') {
+                        li.innerHTML = `<span>${escapeHtml(s.name)}</span> <span class="text-[10px] text-blue-300 font-bold">(بعذر)</span>`;
+                    } else {
+                        li.innerHTML = `<span>${escapeHtml(s.name)}</span> <span class="text-[10px] text-slate-400">(لم يرصد)</span>`;
+                    }
+                    otherList.appendChild(li);
+                    oCount++;
+                }
+            });
+
+            document.getElementById('dayPresentCount').textContent = pCount;
+            document.getElementById('dayAbsentCount').textContent = aCount;
+            document.getElementById('dayLateCount').textContent = lCount;
+            document.getElementById('dayOtherCount').textContent = oCount;
+
+            if (pCount === 0) presentList.innerHTML = '<li class="text-slate-400 py-1">لا يوجد معلمين</li>';
+            if (aCount === 0) absentList.innerHTML = '<li class="text-slate-400 py-1">لا يوجد معلمين</li>';
+            if (lCount === 0) lateList.innerHTML = '<li class="text-slate-400 py-1">لا يوجد معلمين</li>';
+            if (oCount === 0) otherList.innerHTML = '<li class="text-slate-400 py-1">لا يوجد معلمين</li>';
+        }
+
+        function generateReport() {
+            const start = document.getElementById('reportStartDate').value;
+            const end = document.getElementById('reportEndDate').value;
+            const reportTableBody = document.getElementById('reportTableBody');
+            const reportStatusText = document.getElementById('reportStatusText');
+
+            if (!start || !end) return;
+
+            const relevantDates = Object.keys(allAttendanceRecords).filter(date => date >= start && date <= end);
+            const totalRecordedDays = relevantDates.length;
+
+            document.getElementById('repTotalDays').textContent = `${totalRecordedDays} يوم`;
+            reportStatusText.textContent = `تم تحليل سجلات ${totalRecordedDays} يوم خلال هذا النطاق الزمني`;
+
+            let overallPresent = 0, overallAbsent = 0, overallLate = 0;
+
+            const activeStudents = students.filter(s => {
+                const sGroup = (s.group || '').trim();
+                const actGroup = activeGroup.trim();
+                return actGroup === 'الجميع' || sGroup === actGroup;
+            });
+
+            let studentStats = {};
+            activeStudents.forEach(s => {
+                studentStats[s.id] = { name: s.name, email: s.email, group: s.group, present: 0, absent: 0, late: 0, excused: 0 };
+            });
+
+            relevantDates.forEach(date => {
+                const dayRecords = allAttendanceRecords[date] || {};
+                Object.keys(dayRecords).forEach(studentId => {
+                    if (studentStats[studentId]) {
+                        const st = dayRecords[studentId];
+                        if (st === 'present') { studentStats[studentId].present++; overallPresent++; }
+                        else if (st === 'absent') { studentStats[studentId].absent++; overallAbsent++; }
+                        else if (st === 'late') { studentStats[studentId].late++; overallLate++; }
+                        else if (st === 'excused') { studentStats[studentId].excused++; }
+                    }
+                });
+            });
+
+            const grandTotalEntries = overallPresent + overallAbsent + overallLate;
+            const avgRate = grandTotalEntries > 0 ? Math.round((overallPresent / grandTotalEntries) * 100) : 0;
+
+            document.getElementById('repAvgPresenceRate').textContent = `${avgRate}%`;
+            document.getElementById('repTotalAbsences').textContent = overallAbsent;
+            document.getElementById('repTotalLate').textContent = overallLate;
+
+            reportTableBody.innerHTML = '';
+
+            if (activeStudents.length === 0) {
+                reportTableBody.innerHTML = `<tr><td colspan="7" class="text-center p-6 text-slate-400">لا يوجد معلمين مضافين في هذا القسم لحساب التقرير</td></tr>`;
+                return;
+            }
+
+            activeStudents.forEach((student) => {
+                const stat = studentStats[student.id];
+                const totalEvaluated = stat.present + stat.absent + stat.late;
+                const attendanceRate = totalEvaluated > 0 ? Math.round(((stat.present + stat.late) / totalEvaluated) * 100) : 0;
+
+                let rateBadgeClass = "bg-emerald-100 text-emerald-800";
+                if (attendanceRate < 85) rateBadgeClass = "bg-rose-100 text-rose-800";
+                else if (attendanceRate < 95) rateBadgeClass = "bg-amber-100 text-amber-800";
+
+                const row = document.createElement('tr');
+                row.className = 'hover:bg-slate-50 transition border-b border-slate-100';
+                row.innerHTML = `
+                    <td class="p-4">
+                        <div class="font-bold text-slate-800">${escapeHtml(student.name)}</div>
+                        <div class="text-xs font-mono text-blue-900 mt-0.5">${escapeHtml(student.email)}</div>
+                    </td>
+                    <td class="p-4 text-center font-semibold text-slate-600">${escapeHtml(student.group)}</td>
+                    <td class="p-4 text-center font-semibold text-emerald-600">${stat.present}</td>
+                    <td class="p-4 text-center font-semibold text-rose-600">${stat.absent}</td>
+                    <td class="p-4 text-center font-semibold text-amber-600">${stat.late}</td>
+                    <td class="p-4 text-center font-semibold text-blue-600">${stat.excused}</td>
+                    <td class="p-4 text-center">
+                        <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold ${rateBadgeClass}">
+                            ${attendanceRate}%
+                        </span>
+                    </td>
+                `;
+                reportTableBody.appendChild(row);
+            });
+        }
+
+        function exportReportCSV() {
+            const start = document.getElementById('reportStartDate').value;
+            const end = document.getElementById('reportEndDate').value;
+
+            const activeStudents = students.filter(s => {
+                const sGroup = (s.group || '').trim();
+                const actGroup = activeGroup.trim();
+                return actGroup === 'الجميع' || sGroup === actGroup;
+            });
+
+            if (activeStudents.length === 0) {
+                showToast('لا توجد بيانات للتصدير!', 'warning');
+                return;
+            }
+
+            const relevantDates = Object.keys(allAttendanceRecords).filter(date => date >= start && date <= end);
+
+            let csvContent = "\uFEFF"; 
+            csvContent += `تقرير انضباط المعلمين - القسم: (${activeGroup}) من ${start} إلى ${end}\n`;
+            csvContent += `اسم المعلم,البريد الإلكتروني,القسم/التخصص,أيام الحضور,أيام الغياب,أيام التأخر,بعذر,نسبة الحضور\n`;
+
+            activeStudents.forEach(student => {
+                let present = 0, absent = 0, late = 0, excused = 0;
+                relevantDates.forEach(date => {
+                    const st = (allAttendanceRecords[date] || {})[student.id];
+                    if (st === 'present') present++;
+                    else if (st === 'absent') absent++;
+                    else if (st === 'late') late++;
+                    else if (st === 'excused') excused++;
+                });
+
+                const totalEval = present + absent + late;
+                const rate = totalEval > 0 ? Math.round(((present + late) / totalEval) * 100) : 0;
+
+                csvContent += `"${student.name.replace(/"/g, '""')}","${student.email}","${student.group}",${present},${absent},${late},${excused},"${rate}%"\n`;
+            });
+
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement("a");
+            const url = URL.createObjectURL(blob);
+            link.setAttribute("href", url);
+            link.setAttribute("download", `تقرير_حضور_المعلمين_${activeGroup}_${start}_إلى_${end}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        function fetchAttendanceForDate(dateStr) {
+            db.collection("attendance_records").doc(dateStr).onSnapshot((doc) => {
+                if (doc.exists) {
+                    attendanceData = doc.data().records || {};
+                } else {
+                    attendanceData = {};
+                }
+                renderTable();
+            }, (error) => {
+                console.error("Attendance fetch error:", error);
+            });
+        }
+
+        function renderTable() {
+            const searchTerm = searchInput.value.trim().toLowerCase();
+
+            const filteredStudents = students.filter(s => {
+                const sGroup = (s.group || '').trim();
+                const actGroup = activeGroup.trim();
+                const matchesGroup = (actGroup === 'الجميع' || sGroup === actGroup);
+                const matchesSearch = s.name.toLowerCase().includes(searchTerm) || s.email.toLowerCase().includes(searchTerm);
+                return matchesGroup && matchesSearch;
+            });
+
+            filteredStudents.sort((a, b) => a.name.localeCompare(b.name, 'ar'));
+
+            if (filteredStudents.length === 0) {
+                studentsTableBody.innerHTML = '';
+                emptyState.classList.remove('hidden');
+                updateStats();
+                return;
+            }
+
+            emptyState.classList.add('hidden');
+            studentsTableBody.innerHTML = '';
+
+            filteredStudents.forEach((student) => {
+                const status = attendanceData[student.id] || 'unmarked';
+                const row = document.createElement('tr');
+                row.className = 'hover:bg-slate-50 transition border-b border-slate-100';
+
+                let statusBadge = `<span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold bg-slate-100 text-slate-500">لم يرصد</span>`;
+                if (status === 'present') {
+                    statusBadge = `<span class="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800"><i class="fa-solid fa-check text-emerald-600"></i> حاضر</span>`;
+                } else if (status === 'absent') {
+                    statusBadge = `<span class="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold bg-rose-100 text-rose-800"><i class="fa-solid fa-xmark text-rose-600"></i> غائب</span>`;
+                } else if (status === 'late') {
+                    statusBadge = `<span class="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-800"><i class="fa-solid fa-clock text-amber-600"></i> متأخر</span>`;
+                } else if (status === 'excused') {
+                    statusBadge = `<span class="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold bg-blue-100 text-blue-800"><i class="fa-solid fa-file-signature text-blue-600"></i> بعذر / إجازة</span>`;
+                }
+
+                if (isReadOnly) {
+                    row.innerHTML = `
+                        <td class="p-4">
+                            <div class="font-bold text-slate-800">${escapeHtml(student.name)}</div>
+                            <div class="text-xs font-mono text-blue-900 mt-0.5">${escapeHtml(student.email)}</div>
+                        </td>
+                        <td class="p-4 text-center font-semibold text-slate-600">
+                            <span class="bg-blue-50 text-blue-900 px-2.5 py-1 rounded-lg text-xs font-bold border border-blue-100">
+                                ${escapeHtml(student.group)}
+                            </span>
+                        </td>
+                        <td class="p-4 text-center">${statusBadge}</td>
+                    `;
+                } else {
+                    row.innerHTML = `
+                        <td class="p-4">
+                            <div class="font-bold text-slate-800">${escapeHtml(student.name)}</div>
+                            <div class="text-xs font-mono text-blue-900 mt-0.5">${escapeHtml(student.email)}</div>
+                        </td>
+                        <td class="p-4 text-center font-semibold text-slate-600">
+                            <span class="bg-blue-50 text-blue-900 px-2.5 py-1 rounded-lg text-xs font-bold border border-blue-100">
+                                ${escapeHtml(student.group)}
+                            </span>
+                        </td>
+                        <td class="p-4 text-center">${statusBadge}</td>
+                        <td class="p-4">
+                            <div class="flex items-center justify-center gap-1.5">
+                                <button onclick="setStatus('${student.id}', 'present')" class="flex-1 max-w-[85px] py-1.5 px-2 rounded-lg text-xs font-bold border transition ${status === 'present' ? 'bg-emerald-600 text-white border-emerald-600 shadow-sm' : 'bg-white text-emerald-700 border-emerald-200 hover:bg-emerald-50'}">
+                                    <i class="fa-solid fa-check"></i> حاضر
+                                </button>
+                                <button onclick="setStatus('${student.id}', 'absent')" class="flex-1 max-w-[85px] py-1.5 px-2 rounded-lg text-xs font-bold border transition ${status === 'absent' ? 'bg-rose-600 text-white border-rose-600 shadow-sm' : 'bg-white text-rose-700 border-rose-200 hover:bg-rose-50'}">
+                                    <i class="fa-solid fa-xmark"></i> غائب
+                                </button>
+                                <select onchange="setStatus('${student.id}', this.value)" class="py-1.5 px-2 text-xs border border-slate-300 rounded-lg bg-white text-slate-700 focus:outline-none focus:ring-1 focus:ring-blue-500">
+                                    <option value="" ${status === 'unmarked' ? 'selected' : ''}>خيارات...</option>
+                                    <option value="late" ${status === 'late' ? 'selected' : ''}>متأخر</option>
+                                    <option value="excused" ${status === 'excused' ? 'selected' : ''}>بعذر / إجازة</option>
+                                    <option value="unmarked">مسح الإجراء</option>
+                                </select>
+                            </div>
+                        </td>
+                        <td class="p-4 text-center">
+                            <button onclick="deleteStudent('${student.id}')" class="text-slate-400 hover:text-rose-600 transition p-1 rounded-lg hover:bg-rose-50" title="حذف المعلم من السجل السحابي">
+                                <i class="fa-regular fa-trash-can"></i>
+                            </button>
+                        </td>
+                    `;
+                }
+
+                studentsTableBody.appendChild(row);
+            });
+
+            updateStats();
+        }
+
+        window.setStatus = async function(studentId, status) {
+            if (isReadOnly) return;
+            const updatedRecords = { ...attendanceData };
+
+            if (status === 'unmarked' || status === '') {
+                delete updatedRecords[studentId];
+            } else {
+                updatedRecords[studentId] = status;
+            }
+
+            try {
+                await db.collection("attendance_records").doc(currentDate).set({
+                    records: updatedRecords,
+                    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                }, { merge: true });
+
+                showToast('تم حفظ حالة الحضور سحابياً ☁️', 'cloud');
+            } catch (error) {
+                console.error("Error saving status:", error);
+                showToast('فشل الحفظ في السحابة', 'warning');
+            }
+        };
+
+        window.deleteStudent = async function(studentId) {
+            if (isReadOnly) return;
+            if (!confirm("هل أنت متأكد من حذف هذا المعلم من قاعدة البيانات السحابية؟")) return;
+
+            try {
+                await db.collection("attendance_students").doc(studentId).delete();
+                showToast('تم حذف المعلم من السحابة', 'info');
+            } catch (error) {
+                showToast('حدث خطأ أثناء الحذف', 'warning');
+            }
+        };
+
+        function updateStats() {
+            let presentCount = 0, absentCount = 0, otherCount = 0;
+
+            const activeStudents = students.filter(s => {
+                const sGroup = (s.group || '').trim();
+                const actGroup = activeGroup.trim();
+                return actGroup === 'الجميع' || sGroup === actGroup;
+            });
+
+            activeStudents.forEach(student => {
+                const status = attendanceData[student.id];
+                if (status === 'present') presentCount++;
+                else if (status === 'absent') absentCount++;
+                else if (status === 'late' || status === 'excused') otherCount++;
+            });
+
+            document.getElementById('statTotal').textContent = activeStudents.length;
+            document.getElementById('statPresent').textContent = presentCount;
+            document.getElementById('statAbsent').textContent = absentCount;
+            document.getElementById('statOther').textContent = otherCount;
+        }
+
+        function setupEventListeners() {
+            selectedDateInput.addEventListener('change', (e) => {
+                currentDate = e.target.value;
+                fetchAttendanceForDate(currentDate);
+            });
+
+            document.getElementById('todayBtn').addEventListener('click', () => {
+                currentDate = new Date().toISOString().split('T')[0];
+                selectedDateInput.value = currentDate;
+                fetchAttendanceForDate(currentDate);
+            });
+
+            searchInput.addEventListener('input', renderTable);
+
+            async function addStudentFromInput() {
+                if (isReadOnly) return;
+                const name = quickStudentInput.value.trim();
+                if (!name) {
+                    showToast('يرجى اختيار أو كتابة اسم المعلم', 'warning');
+                    return;
+                }
+
+                const targetGroup = activeGroup === 'الجميع' ? (groups[0] || 'عام') : activeGroup;
+
+                if (students.some(s => s.name === name && s.group.trim() === targetGroup.trim())) {
+                    showToast('المعلم موجود مسبقاً في هذا القسم', 'warning');
+                    quickStudentInput.value = '';
+                    return;
+                }
+
+                try {
+                    await db.collection("attendance_students").add({
+                        name: name,
+                        email: "t" + Math.floor(100000 + Math.random() * 900000) + "@moe.gov.sa",
+                        group: targetGroup.trim(),
+                        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                    });
+                    showToast(`تم إضافة أ/ ${name} إلى قسم (${targetGroup})`, 'success');
+                    quickStudentInput.value = '';
+                } catch (err) {
+                    showToast('حدث خطأ أثناء الإضافة', 'warning');
+                }
+            }
+
+            addQuickStudentBtn.addEventListener('click', addStudentFromInput);
+            quickStudentInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    addStudentFromInput();
+                }
+            });
+
+            document.getElementById('openAddModalBtn').addEventListener('click', () => {
+                if (isReadOnly) return;
+                updateGroupDropdowns();
+                const activeInGroup = students.filter(s => {
+                    const sGroup = (s.group || '').trim();
+                    const actGroup = activeGroup.trim();
+                    return actGroup === 'الجميع' || sGroup === actGroup;
+                });
+                let textValue = "";
+                activeInGroup.forEach(s => {
+                    textValue += `${s.name}\n${s.email}\n`;
+                });
+                bulkNamesInput.value = textValue;
+                addModal.classList.remove('hidden');
+            });
+
+            const closeModal = () => addModal.classList.add('hidden');
+            document.getElementById('closeModalBtn').addEventListener('click', closeModal);
+            document.getElementById('cancelModalBtn').addEventListener('click', closeModal);
+
+            // حفظ وإدراج أسماء المعلمين وإيميلاتهم دفعة واحدة
+            document.getElementById('saveNamesBtn').addEventListener('click', async () => {
+                if (isReadOnly) return;
+                const rawText = bulkNamesInput.value.trim();
+                const selectedGroup = modalGroupSelector.value.trim();
+                const lines = rawText ? rawText.split('\n').map(line => line.trim()).filter(line => line.length > 0) : [];
+
+                if (!selectedGroup) {
+                    showToast('يرجى تحديد القسم أولاً', 'warning');
+                    return;
+                }
+
+                try {
+                    const batch = db.batch();
+                    
+                    // تحليل القائمة بحيث يكون سطر للاسم والسطر التالي للإيميل
+                    for (let i = 0; i < lines.length; i++) {
+                        let line1 = lines[i];
+                        let line2 = lines[i+1];
+
+                        let name = "", email = "";
+                        
+                        if (line2 && line2.includes('@')) {
+                            name = line1.replace(/@\S+/g, '').trim();
+                            email = line2.trim().toLowerCase();
+                            i++; // تجاوز سطر الإيميل
+                        } else {
+                            if (line1.includes('@')) {
+                                let parts = line1.split(/\s+/);
+                                email = parts.find(p => p.includes('@')) || '';
+                                name = parts.filter(p => !p.includes('@')).join(' ');
+                            } else {
+                                name = line1;
+                                email = `t${Math.floor(100000 + Math.random() * 900000)}@moe.gov.sa`;
+                            }
+                        }
+
+                        if (name) {
+                            const exists = students.some(s => s.name === name && s.group.trim() === selectedGroup);
+                            if (!exists) {
+                                const newDocRef = db.collection("attendance_students").doc();
+                                batch.set(newDocRef, {
+                                    name: name,
+                                    email: email,
+                                    group: selectedGroup,
+                                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                                });
+                            }
+                        }
+                    }
+
+                    await batch.commit();
+                    showToast(`تم حفظ معلمي قسم (${selectedGroup}) بالسحابة بنجاح! ☁️`, 'cloud');
+                    closeModal();
+                } catch (err) {
+                    console.error("Batch save error:", err);
+                    showToast('حدث خطأ أثناء حفظ البيانات', 'warning');
+                }
+            });
+
+            document.getElementById('exportExcelBtn').addEventListener('click', exportToCSV);
+        }
+
+        function exportToCSV() {
+            const activeStudents = students.filter(s => {
+                const sGroup = (s.group || '').trim();
+                const actGroup = activeGroup.trim();
+                return actGroup === 'الجميع' || sGroup === actGroup;
+            });
+
+            if (activeStudents.length === 0) {
+                showToast('لا توجد بيانات للتصدير!', 'warning');
+                return;
+            }
+
+            let csvContent = "\uFEFF"; 
+            csvContent += `اسم المعلم,البريد الإلكتروني,القسم/التخصص,حالة الحضور - تاريخ: ${currentDate}\n`;
+
+            activeStudents.forEach(student => {
+                const status = attendanceData[student.id] || 'لم يرصد';
+                let translatedStatus = 'لم يرصد';
+                if (status === 'present') translatedStatus = 'حاضر';
+                if (status === 'absent') translatedStatus = 'غائب';
+                if (status === 'late') translatedStatus = 'متأخر';
+                if (status === 'excused') translatedStatus = 'بعذر/إجازة';
+
+                csvContent += `"${student.name.replace(/"/g, '""')}","${student.email}","${student.group}","${translatedStatus}"\n`;
+            });
+
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement("a");
+            const url = URL.createObjectURL(blob);
+            link.setAttribute("href", url);
+            link.setAttribute("download", `كشف_حضور_المعلمين_${activeGroup}_${currentDate}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        function shareReportWithManager() {
+            updateShareUrl();
+            document.getElementById('shareModal').classList.remove('hidden');
+        }
+
+        function closeShareModal() {
+            document.getElementById('shareModal').classList.add('hidden');
+        }
+
+        function copyShareUrl() {
+            const shareInput = document.getElementById('shareUrlInput');
+            shareInput.select();
+            document.execCommand('copy');
+            showToast('تم نسخ رابط التقرير الإشرافي 📋', 'success');
+        }
+
+        function sendReportToWhatsAppManager() {
+            const shareUrl = document.getElementById('shareUrlInput').value;
+            
+            const start = document.getElementById('reportStartDate').value;
+            const end = document.getElementById('reportEndDate').value;
+            const relevantDates = Object.keys(allAttendanceRecords).filter(date => date >= start && date <= end);
+            
+            let overallPresent = 0, overallAbsent = 0, overallLate = 0;
+            const activeStudents = students.filter(s => {
+                const sGroup = (s.group || '').trim();
+                const actGroup = activeGroup.trim();
+                return actGroup === 'الجميع' || sGroup === actGroup;
+            });
+
+            relevantDates.forEach(date => {
+                const dayRecords = allAttendanceRecords[date] || {};
+                activeStudents.forEach(s => {
+                    const st = dayRecords[s.id];
+                    if (st === 'present') overallPresent++;
+                    else if (st === 'absent') overallAbsent++;
+                    else if (st === 'late') overallLate++;
+                });
+            });
+
+            const grandTotal = overallPresent + overallAbsent + overallLate;
+            const avgRate = grandTotal > 0 ? Math.round((overallPresent / grandTotal) * 100) : 0;
+
+            const message = `سعادة مدير المدرسة د/ عبد الله بن ظافر الشهري المحترم،%0A%0Aإليكم تقرير متابعة انضباط المعلمين - القسم: (${activeGroup})%0A- إجمالي أيام الرصد: ${relevantDates.length} يوم%0A- نسبة الانضباط العامة: ${avgRate}%%%0A- إجمالي الغياب: ${overallAbsent}%0A- إجمالي التأخر: ${overallLate}%0A%0Aيمكنكم الاطلاع على التفاصيل الكاملة عبر الرابط التالي:%0A${shareUrl}`;
+
+            window.open(`https://api.whatsapp.com/send?text=${message}`, '_blank');
+        }
+
+        function showToast(message, type = 'success') {
+            const toast = document.getElementById('toast');
+            const toastText = document.getElementById('toastText');
+            const toastIcon = document.getElementById('toastIcon');
+
+            toastText.textContent = message;
+
+            if (type === 'cloud') {
+                toastIcon.className = 'fa-solid fa-cloud-arrow-up text-blue-300';
+            } else if (type === 'warning') {
+                toastIcon.className = 'fa-solid fa-triangle-exclamation text-amber-400';
+            } else {
+                toastIcon.className = 'fa-solid fa-circle-check text-emerald-400';
+            }
+
+            toast.classList.remove('opacity-0', 'pointer-events-none', 'translate-y-2');
+            toast.classList.add('opacity-100', 'translate-y-0');
+
+            setTimeout(() => {
+                toast.classList.add('opacity-0', 'pointer-events-none', 'translate-y-2');
+                toast.classList.remove('opacity-100', 'translate-y-0');
+            }, 2500);
+        }
+
+        function escapeHtml(str) {
+            return String(str).replace(/[&<>"']/g, function(m) {
+                return {
+                    '&': '&amp;',
+                    '<': '&lt;',
+                    '>': '&gt;',
+                    '"': '&quot;',
+                    "'": '&#039;'
+                }[m];
+            });
+        }
+    </script>
+</body>
+</html>
