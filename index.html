@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>نظام متابعة حضور وانضباط المعلمين - د/ عبد الله بن ظافر الشهري</title>
+    <title>نظام متابعة حضور وغياب المعلمين - المدير د/ عبد الله بن ظافر الشهري</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
@@ -40,26 +40,26 @@
 <body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col">
 
     <!-- Header Section -->
-    <header class="bg-blue-900 text-white shadow-lg border-b border-blue-950">
+    <header class="bg-blue-950 text-white shadow-lg border-b border-blue-900">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex flex-col md:flex-row justify-between items-center gap-4">
             <div class="flex items-center space-x-3 space-x-reverse">
-                <div class="p-3 bg-blue-800 rounded-xl shadow-inner border border-blue-700">
-                    <i class="fa-solid fa-user-tie text-2xl text-amber-300"></i>
+                <div class="p-3 bg-blue-900 rounded-xl shadow-inner border border-blue-800">
+                    <i class="fa-solid fa-user-tie text-2xl text-amber-400"></i>
                 </div>
                 <div>
-                    <h1 class="text-2xl font-black tracking-wide">نظام متابعة حضور وانضباط المعلمين</h1>
-                    <p class="text-blue-200 text-sm font-medium">إشراف مدير المدرسة: <span class="text-amber-300 font-bold">د/ عبد الله بن ظافر الشهري</span></p>
+                    <h1 class="text-2xl font-bold tracking-wide">نظام متابعة حضور وغياب المعلمين</h1>
+                    <p class="text-blue-200 text-sm">إشراف وتوجيه مدير المدرسة: <span class="font-bold text-amber-300">د/ عبد الله بن ظافر الشهري</span></p>
                 </div>
             </div>
             
             <div class="flex items-center gap-3">
-                <button id="shareManagerBtn" onclick="shareReportWithManager()" class="bg-amber-400 hover:bg-amber-500 text-blue-950 font-bold px-3 py-2 rounded-lg border border-amber-300 shadow flex items-center gap-2 text-sm transition">
+                <button id="shareManagerBtn" onclick="shareReportWithManager()" class="bg-amber-400 hover:bg-amber-500 text-blue-950 font-bold px-3.5 py-2 rounded-lg border border-amber-300 shadow flex items-center gap-2 text-sm transition">
                     <i class="fa-solid fa-share-nodes text-blue-950"></i>
-                    <span>مشاركة تقرير المتابعة</span>
+                    <span>مشاركة التقرير الإشرافي</span>
                 </button>
-                <div id="cloudBadge" class="bg-blue-950/80 px-4 py-2 rounded-lg border border-blue-700/50 flex items-center gap-2 text-sm">
+                <div id="cloudBadge" class="bg-blue-900/80 px-4 py-2 rounded-lg border border-blue-700/50 flex items-center gap-2 text-sm">
                     <i id="cloudIcon" class="fa-solid fa-cloud text-emerald-400 animate-pulse"></i>
-                    <span id="cloudStatus" class="font-medium text-blue-100">السحابة: متصل بالخادم...</span>
+                    <span id="cloudStatus" class="font-medium text-blue-100">السحابة: متصل جاري التحميل...</span>
                 </div>
             </div>
         </div>
@@ -68,7 +68,7 @@
     <!-- Read-Only Mode Banner -->
     <div id="readOnlyBanner" class="hidden bg-amber-500 text-slate-950 font-bold px-4 py-2.5 text-center text-sm shadow-md flex items-center justify-center gap-2">
         <i class="fa-solid fa-eye text-lg"></i>
-        <span>وضع العرض التقريري فقط (تقارير متابعة انضباط المعلمين)</span>
+        <span>وضع العرض والاستعلام والإحصائيات الإشرافية</span>
     </div>
 
     <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex-grow w-full">
@@ -77,35 +77,33 @@
         <div id="tabsContainer" class="flex border-b border-slate-200 mb-6 bg-white rounded-t-xl px-4 pt-2">
             <button id="dailyTabBtn" onclick="switchTab('daily')" class="tab-active py-3 px-6 text-sm font-medium transition flex items-center gap-2">
                 <i class="fa-solid fa-clipboard-user text-blue-900"></i>
-                كشف الرصد اليومي للحضور
+                رصد حضور المعلمين اليومي
             </button>
             <button id="reportsTabBtn" onclick="switchTab('reports')" class="text-slate-500 hover:text-blue-900 py-3 px-6 text-sm font-medium transition flex items-center gap-2">
                 <i class="fa-solid fa-chart-line text-blue-900"></i>
-                التقارير والإحصائيات الشاملة
+                التقارير والإحصائيات التراكمية
             </button>
         </div>
 
-        <!-- Class/Department Selector Bar -->
         <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-4 mb-6 flex flex-col sm:flex-row justify-between items-center gap-4">
             <div class="flex items-center gap-3 w-full sm:w-auto">
                 <div class="p-2.5 bg-blue-50 rounded-xl text-blue-900 font-bold flex items-center gap-2 text-sm">
-                    <i class="fa-solid fa-sitemap text-blue-800"></i>
-                    القسم / التخصص:
+                    <i class="fa-solid fa-layer-group text-blue-900"></i>
+                    التخصص / القسم الحالي:
                 </div>
-                <select id="classSelector" onchange="changeActiveGroup(this.value)" class="bg-blue-900 text-white font-bold px-4 py-2 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none transition flex-grow sm:flex-grow-0">
+                <select id="classSelector" onchange="changeActiveGroup(this.value)" class="bg-blue-950 text-white font-bold px-4 py-2 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none transition flex-grow sm:flex-grow-0">
                     <option value="الجميع">جميع التخصصات والأقسام</option>
                 </select>
             </div>
 
             <div class="flex items-center gap-2 w-full sm:w-auto justify-end flex-wrap">
-                <!-- أداة لصق واستيراد الكل دفعة واحدة المضافة حديثاً -->
-                <button onclick="openAddModalWithClass()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-3 py-2 rounded-xl text-xs transition flex items-center gap-1.5 shadow-sm border border-indigo-500">
-                    <i class="fa-solid fa-paste"></i>
-                    لصق واستيراد المعلمين دفعة واحدة
-                </button>
                 <button onclick="copyCurrentClassData()" class="bg-blue-50 hover:bg-blue-100 text-blue-900 font-bold px-3 py-2 rounded-xl text-xs transition flex items-center gap-1.5 border border-blue-200">
                     <i class="fa-solid fa-copy"></i>
                     نسخ القائمة
+                </button>
+                <button onclick="openAddModalWithClass()" class="bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-bold px-3 py-2 rounded-xl text-xs transition flex items-center gap-1.5 border border-emerald-200">
+                    <i class="fa-solid fa-paste"></i>
+                    لصق/تحديث القائمة
                 </button>
                 <button onclick="deleteCurrentClassData()" class="bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold px-3 py-2 rounded-xl text-xs transition flex items-center gap-1.5 border border-rose-200">
                     <i class="fa-solid fa-trash-can"></i>
@@ -123,7 +121,6 @@
             <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 mb-6">
                 <div class="flex flex-col lg:flex-row justify-between items-stretch lg:items-center gap-4">
                     
-                    <!-- Date Picker Controls -->
                     <div class="flex flex-wrap items-center gap-3">
                         <label class="font-bold text-slate-700 flex items-center gap-2">
                             <i class="fa-regular fa-calendar-days text-blue-900"></i>
@@ -135,48 +132,45 @@
                         </button>
                     </div>
 
-                    <!-- Quick Controls and Modal Triggers -->
                     <div class="flex flex-wrap items-center gap-2">
                         <div id="quickAddControls" class="relative flex items-center gap-1">
                             <div class="relative">
                                 <input type="text" id="quickStudentInput" list="presetStudentsList" placeholder="ابحث أو اكتب اسم معلم..." class="bg-slate-50 border border-slate-300 text-slate-800 font-medium px-3 py-2 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none w-[200px]" autocomplete="off">
                                 <datalist id="presetStudentsList"></datalist>
                             </div>
-                            <button id="addQuickStudentBtn" class="bg-blue-900 hover:bg-blue-800 text-white p-2 rounded-xl text-sm transition shadow-sm flex items-center justify-center w-9 h-9" title="إضافة المعلم للقسم الحالي">
+                            <button id="addQuickStudentBtn" class="bg-blue-900 hover:bg-blue-950 text-white p-2 rounded-xl text-sm transition shadow-sm flex items-center justify-center w-9 h-9" title="إضافة المعلم المحدد للقسم الحالي">
                                 <i class="fa-solid fa-plus"></i>
                             </button>
                         </div>
 
-                        <!-- زر إدراج الأسماء دفعة واحدة -->
                         <button id="openAddModalBtn" class="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold px-4 py-2 rounded-xl text-sm transition flex items-center gap-2 shadow-sm">
                             <i class="fa-solid fa-user-plus"></i>
-                            إدراج أسماء (دفعة واحدة)
+                            إدراج معلمين (دفعة واحدة)
                         </button>
-
-                        <button id="exportExcelBtn" class="bg-blue-800 hover:bg-blue-900 text-white font-semibold px-4 py-2 rounded-xl text-sm transition flex items-center gap-2 shadow-sm">
+                        <button id="exportExcelBtn" class="bg-blue-700 hover:bg-blue-800 text-white font-semibold px-4 py-2 rounded-xl text-sm transition flex items-center gap-2 shadow-sm">
                             <i class="fa-solid fa-file-excel"></i>
-                            تصدير الكشف CSV
+                            تصدير Excel / CSV
                         </button>
                     </div>
 
                 </div>
             </div>
 
-            <!-- Dashboard Counter Cards -->
-            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+            <!-- إحصائيات اليوم -->
+            <div class="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
                 <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
                     <div>
-                        <p class="text-xs text-slate-500 font-bold mb-1">إجمالي المعلمين بالقسم</p>
+                        <p class="text-xs text-slate-500 font-bold mb-1">إجمالي المعلمين</p>
                         <h3 id="statTotal" class="text-2xl font-black text-slate-800">0</h3>
                     </div>
                     <div class="w-12 h-12 bg-slate-100 rounded-xl flex items-center justify-center text-slate-600 text-xl">
-                        <i class="fa-solid fa-users text-blue-900"></i>
+                        <i class="fa-solid fa-chalkboard-user"></i>
                     </div>
                 </div>
 
                 <div class="bg-white p-4 rounded-xl border border-emerald-100 shadow-sm flex items-center justify-between">
                     <div>
-                        <p class="text-xs text-emerald-600 font-bold mb-1">حاضر / منتظم</p>
+                        <p class="text-xs text-emerald-600 font-bold mb-1">حاضر</p>
                         <h3 id="statPresent" class="text-2xl font-black text-emerald-600">0</h3>
                     </div>
                     <div class="w-12 h-12 bg-emerald-50 rounded-xl flex items-center justify-center text-emerald-600 text-xl">
@@ -194,6 +188,16 @@
                     </div>
                 </div>
 
+                <div class="bg-white p-4 rounded-xl border border-purple-100 shadow-sm flex items-center justify-between">
+                    <div>
+                        <p class="text-xs text-purple-600 font-bold mb-1">مستأذن</p>
+                        <h3 id="statPermission" class="text-2xl font-black text-purple-600">0</h3>
+                    </div>
+                    <div class="w-12 h-12 bg-purple-50 rounded-xl flex items-center justify-center text-purple-600 text-xl">
+                        <i class="fa-solid fa-person-walking-arrow-right"></i>
+                    </div>
+                </div>
+
                 <div class="bg-white p-4 rounded-xl border border-amber-100 shadow-sm flex items-center justify-between">
                     <div>
                         <p class="text-xs text-amber-600 font-bold mb-1">متأخر / بعذر</p>
@@ -205,15 +209,14 @@
                 </div>
             </div>
 
-            <!-- Attendance Table -->
             <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
                 <div class="p-4 bg-slate-50/70 border-b border-slate-200 flex flex-col md:flex-row justify-between items-center gap-3">
                     <div class="relative w-full md:w-72">
                         <i class="fa-solid fa-magnifying-glass absolute right-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
-                        <input type="text" id="searchInput" placeholder="بحث عن اسم معلم أو بريد..." class="w-full pr-9 pl-4 py-2 text-sm bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                        <input type="text" id="searchInput" placeholder="بحث عن اسم معلم..." class="w-full pr-9 pl-4 py-2 text-sm bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none">
                     </div>
                     <div class="text-xs text-slate-500 font-medium">
-                        يتم حفظ واستعادة الحالة سحابياً وفورياً لقاعدة بيانات المدرسة
+                        رصد الحالات يُحفظ فوراً وسحابياً في سجلات إدارة المدرسة
                     </div>
                 </div>
 
@@ -221,10 +224,10 @@
                     <table class="w-full text-right border-collapse min-w-[650px]">
                         <thead>
                             <tr class="bg-slate-100/80 text-slate-600 text-xs uppercase font-bold border-b border-slate-200">
-                                <th class="p-4">بيانات المعلم (الاسم والبريد الوزاري)</th>
-                                <th class="p-4 text-center w-36">القسم / التخصص</th>
-                                <th class="p-4 text-center">حالة الحضور اليوم</th>
-                                <th class="p-4 text-center edit-column">تحديد الإجراء اليومي</th>
+                                <th class="p-4">بيانات المعلم (الاسم والبريد)</th>
+                                <th class="p-4 text-center w-36">التخصص / القسم</th>
+                                <th class="p-4 text-center">الحالة اليوم</th>
+                                <th class="p-4 text-center edit-column">تحديد الحالة الإشرافية</th>
                                 <th class="p-4 text-center w-28 edit-column">إجراءات</th>
                             </tr>
                         </thead>
@@ -232,35 +235,32 @@
                     </table>
                 </div>
 
-                <!-- Empty State -->
                 <div id="emptyState" class="hidden p-12 text-center">
-                    <div class="w-16 h-16 bg-blue-50 text-blue-800 rounded-full flex items-center justify-center mx-auto mb-4 text-2xl">
+                    <div class="w-16 h-16 bg-blue-50 text-blue-900 rounded-full flex items-center justify-center mx-auto mb-4 text-2xl">
                         <i class="fa-solid fa-user-slash"></i>
                     </div>
-                    <h3 class="text-lg font-bold text-slate-700 mb-1">لا يوجد معلمين مضافين في هذا القسم حتى الآن</h3>
-                    <p class="text-slate-500 text-sm max-w-md mx-auto mb-4">يمكنك إضافة قائمة المعلمين بالضغط على زر "إدراج أسماء (دفعة واحدة)" أو استخدام أيقونة اللصق لاستيراد الجميع معاً.</p>
-                    <button id="emptyStateAddBtn" onclick="document.getElementById('openAddModalBtn').click()" class="bg-blue-900 hover:bg-blue-800 text-white text-sm font-semibold px-5 py-2.5 rounded-xl transition">
-                        إضافة معلمي القسم الآن
+                    <h3 class="text-lg font-bold text-slate-700 mb-1">لا يوجد معلمون في هذا القسم حالياً</h3>
+                    <p class="text-slate-500 text-sm max-w-md mx-auto mb-4">قم بإضافة قائمة أسماء المعلمين لهذا القسم بالضغط على زر "إدراج معلمين" أو اختر من القائمة المنسدلة.</p>
+                    <button id="emptyStateAddBtn" onclick="document.getElementById('openAddModalBtn').click()" class="bg-blue-900 hover:bg-blue-950 text-white text-sm font-semibold px-5 py-2.5 rounded-xl transition">
+                        إضافة قائمة المعلمين الآن
                     </button>
                 </div>
             </div>
         </div>
 
-        <!-- ==================== REPORTS SECTION ==================== -->
         <div id="reportsSection" class="hidden space-y-6">
             
-            <!-- Day Lookup Card -->
-            <div class="bg-blue-900 text-white rounded-2xl shadow-md p-6 border border-blue-800">
+            <div class="bg-blue-950 text-white rounded-2xl shadow-md p-6 border border-blue-900">
                 <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-4">
                     <div>
                         <h3 class="text-lg font-bold flex items-center gap-2 text-amber-300">
                             <i class="fa-solid fa-calendar-day"></i>
-                            استعلام حركات الحضور والانظباط ليوم محدد
+                            استعلام حضور وغياب المعلمين ليوم محدد
                         </h3>
-                        <p class="text-blue-200 text-xs mt-1">سجل تفاصيل الحضور والغياب والتأخر لكادر التدريس</p>
+                        <p class="text-blue-200 text-xs mt-1">عرض التفاصيل اليومية للكادر التعليمي حسب القسم أو لجميع الأقسام</p>
                     </div>
-                    <div class="flex items-center gap-3 bg-blue-800/80 p-2 rounded-xl border border-blue-700">
-                        <label class="font-bold text-sm text-blue-100">اختر التاريخ:</label>
+                    <div class="flex items-center gap-3 bg-blue-900/80 p-2 rounded-xl border border-blue-700">
+                        <label class="font-bold text-sm text-blue-100">اختر اليوم:</label>
                         <input type="date" id="singleReportDate" onchange="renderSingleDayReport()" class="bg-blue-950 text-white border border-blue-600 rounded-lg px-3 py-1.5 text-sm font-medium focus:ring-2 focus:ring-amber-400 focus:outline-none">
                     </div>
                 </div>
@@ -286,35 +286,34 @@
                         <ul id="dayAbsentList" class="space-y-1 max-h-48 overflow-y-auto custom-scrollbar text-xs text-rose-100"></ul>
                     </div>
 
+                    <div class="bg-purple-950/50 border border-purple-500/30 rounded-xl p-4">
+                        <div class="flex justify-between items-center mb-2 pb-2 border-b border-purple-500/30">
+                            <span class="font-bold text-purple-300 text-sm flex items-center gap-1.5">
+                                <i class="fa-solid fa-person-walking-arrow-right"></i> المستأذنون
+                            </span>
+                            <span id="dayPermissionCount" class="bg-purple-500/20 text-purple-300 text-xs px-2 py-0.5 rounded-full font-bold">0</span>
+                        </div>
+                        <ul id="dayPermissionList" class="space-y-1 max-h-48 overflow-y-auto custom-scrollbar text-xs text-purple-100"></ul>
+                    </div>
+
                     <div class="bg-amber-950/50 border border-amber-500/30 rounded-xl p-4">
                         <div class="flex justify-between items-center mb-2 pb-2 border-b border-amber-500/30">
                             <span class="font-bold text-amber-300 text-sm flex items-center gap-1.5">
-                                <i class="fa-solid fa-clock"></i> المتأخرون
+                                <i class="fa-solid fa-clock"></i> المتأخرون / عذر
                             </span>
                             <span id="dayLateCount" class="bg-amber-500/20 text-amber-300 text-xs px-2 py-0.5 rounded-full font-bold">0</span>
                         </div>
                         <ul id="dayLateList" class="space-y-1 max-h-48 overflow-y-auto custom-scrollbar text-xs text-amber-100"></ul>
                     </div>
-
-                    <div class="bg-slate-800/80 border border-slate-600 rounded-xl p-4">
-                        <div class="flex justify-between items-center mb-2 pb-2 border-b border-slate-600">
-                            <span class="font-bold text-slate-300 text-sm flex items-center gap-1.5">
-                                <i class="fa-solid fa-file-signature"></i> بعذر / إجازة / لم يرصد
-                            </span>
-                            <span id="dayOtherCount" class="bg-slate-700 text-slate-300 text-xs px-2 py-0.5 rounded-full font-bold">0</span>
-                        </div>
-                        <ul id="dayOtherList" class="space-y-1 max-h-48 overflow-y-auto custom-scrollbar text-xs text-slate-200"></ul>
-                    </div>
                 </div>
             </div>
 
-            <!-- Range Statistics -->
             <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5">
                 <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                     <div class="flex flex-wrap items-center gap-3">
                         <span class="font-bold text-slate-700 text-sm flex items-center gap-2">
                             <i class="fa-solid fa-filter text-blue-900"></i>
-                            نطاق التقرير التراكمي للمعلمين:
+                            نطاق تقرير الإحصائيات التراكمية للكادر:
                         </span>
                         <div class="flex items-center gap-2 text-sm">
                             <label class="text-slate-500">من:</label>
@@ -324,19 +323,18 @@
                             <label class="text-slate-500">إلى:</label>
                             <input type="date" id="reportEndDate" class="bg-slate-50 border border-slate-300 rounded-xl px-3 py-1.5 text-sm font-medium focus:ring-2 focus:ring-blue-500 focus:outline-none">
                         </div>
-                        <button onclick="generateReport()" class="bg-blue-900 hover:bg-blue-800 text-white font-semibold px-4 py-1.5 rounded-xl text-sm transition">
+                        <button onclick="generateReport()" class="bg-blue-900 hover:bg-blue-950 text-white font-semibold px-4 py-1.5 rounded-xl text-sm transition">
                             عرض التقرير
                         </button>
                     </div>
 
                     <button onclick="exportReportCSV()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold px-4 py-2 rounded-xl text-sm transition flex items-center gap-2 shadow-sm">
                         <i class="fa-solid fa-file-csv"></i>
-                        تصدير التقرير CSV
+                        تصدير التقرير كـ CSV
                     </button>
                 </div>
             </div>
 
-            <!-- Overview Stats Cards -->
             <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
                     <p class="text-xs text-slate-500 font-bold mb-1">إجمالي أيام الرصد</p>
@@ -344,7 +342,7 @@
                 </div>
 
                 <div class="bg-white p-5 rounded-2xl border border-emerald-200 shadow-sm">
-                    <p class="text-xs text-emerald-600 font-bold mb-1">نسبة الانضباط العامة</p>
+                    <p class="text-xs text-emerald-600 font-bold mb-1">نسبة انضباط المعلمين</p>
                     <h3 id="repAvgPresenceRate" class="text-2xl font-black text-emerald-600">0%</h3>
                 </div>
 
@@ -353,18 +351,17 @@
                     <h3 id="repTotalAbsences" class="text-2xl font-black text-rose-600">0</h3>
                 </div>
 
-                <div class="bg-white p-5 rounded-2xl border border-amber-200 shadow-sm">
-                    <p class="text-xs text-amber-600 font-bold mb-1">إجمالي التأخرات</p>
-                    <h3 id="repTotalLate" class="text-2xl font-black text-amber-600">0</h3>
+                <div class="bg-white p-5 rounded-2xl border border-purple-200 shadow-sm">
+                    <p class="text-xs text-purple-600 font-bold mb-1">إجمالي حالات الاستئذان</p>
+                    <h3 id="repTotalPermission" class="text-2xl font-black text-purple-600">0</h3>
                 </div>
             </div>
 
-            <!-- Detailed Table -->
             <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
                 <div class="p-4 bg-slate-50 border-b border-slate-200 flex justify-between items-center">
                     <h3 class="font-bold text-slate-800 text-sm flex items-center gap-2">
                         <i class="fa-solid fa-users-viewfinder text-blue-900"></i>
-                        تقرير سجل حضور وانضباط المعلمين التفصيلي
+                        تقرير إحصائيات انضباط وتواجد المعلمين التراكمي
                     </h3>
                     <span id="reportStatusText" class="text-xs text-slate-500">جاري تحميل البيانات...</span>
                 </div>
@@ -373,13 +370,13 @@
                     <table class="w-full text-right border-collapse min-w-[700px]">
                         <thead>
                             <tr class="bg-slate-100/80 text-slate-600 text-xs uppercase font-bold border-b border-slate-200">
-                                <th class="p-4">اسم المعلم والبريد</th>
-                                <th class="p-4 text-center">القسم / التخصص</th>
+                                <th class="p-4">بيانات المعلم (الاسم والبريد)</th>
+                                <th class="p-4 text-center">التخصص / القسم</th>
                                 <th class="p-4 text-center text-emerald-700">أيام الحضور</th>
                                 <th class="p-4 text-center text-rose-700">أيام الغياب</th>
-                                <th class="p-4 text-center text-amber-700">أيام التأخر</th>
-                                <th class="p-4 text-center text-blue-700">بعذر</th>
-                                <th class="p-4 text-center">نسبة الحضور</th>
+                                <th class="p-4 text-center text-purple-700">أيام الاستئذان</th>
+                                <th class="p-4 text-center text-amber-700">التأخر / بعذر</th>
+                                <th class="p-4 text-center">نسبة الحضور والتواجد</th>
                             </tr>
                         </thead>
                         <tbody id="reportTableBody" class="divide-y divide-slate-100 text-sm"></tbody>
@@ -391,13 +388,13 @@
 
     </main>
 
-    <!-- Modal for Bulk Adding Names (إدراج أسماء دفعة واحدة) -->
+    <!-- Modal Add Teachers -->
     <div id="addModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
         <div class="bg-white rounded-2xl shadow-xl border border-slate-100 w-full max-w-xl overflow-hidden transform transition-all">
-            <div class="p-5 bg-blue-900 text-white flex justify-between items-center">
+            <div class="p-5 bg-blue-950 text-white flex justify-between items-center">
                 <h3 class="text-lg font-bold flex items-center gap-2">
-                    <i class="fa-solid fa-paste"></i>
-                    لصق واستيراد أسماء المعلمين وإيميلاتهم دفعة واحدة
+                    <i class="fa-solid fa-user-plus"></i>
+                    إضافة أسماء المعلمين إلى القسم والسحابة
                 </h3>
                 <button id="closeModalBtn" class="text-blue-200 hover:text-white transition">
                     <i class="fa-solid fa-xmark text-xl"></i>
@@ -406,21 +403,22 @@
             
             <div class="p-6 space-y-4">
                 <div>
-                    <label class="block text-sm font-bold text-slate-700 mb-1">اختر القسم / التخصص المستهدف:</label>
-                    <select id="modalGroupSelector" class="w-full border border-slate-300 rounded-xl p-2.5 text-sm font-bold bg-slate-50 text-blue-900 mb-3 focus:ring-2 focus:ring-blue-500 focus:outline-none"></select>
+                    <label class="block text-sm font-bold text-slate-700 mb-1">اختر التخصص / القسم المستهدف:</label>
+                    <select id="modalGroupSelector" class="w-full border border-slate-300 rounded-xl p-2.5 text-sm font-bold bg-slate-50 text-blue-950 mb-3 focus:ring-2 focus:ring-blue-500 focus:outline-none"></select>
 
                     <label class="block text-sm font-bold text-slate-700 mb-2">
-                        الصق القائمة هنا (سطر للاسم وسطر للإيميل):
+                        ألصق أو اكتب أسماء المعلمين هنا (كل اسم في سطر والبريد الإلكتروني في سطر):
                     </label>
-                    <textarea id="bulkNamesInput" rows="7" placeholder="عبدالعزيز الفيفي
-a.alfaifi@moe.gov.sa
-عبدالله الشهري
-a.alshehri@moe.gov.sa" class="w-full border border-slate-300 rounded-xl p-3 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none leading-relaxed font-mono"></textarea>
-                    
-                    <div class="bg-blue-50 border border-blue-200 rounded-xl p-3 mt-2 text-xs text-blue-900 flex items-start gap-2">
-                        <i class="fa-solid fa-circle-info text-blue-800 text-sm mt-0.5"></i>
-                        <span><strong>طريقة التنسيق:</strong> الصق القائمة بحيث يكون <strong>اسم المعلم في سطر</strong>، و<strong>بريده الإلكتروني في السطر الذي يليه مباشرة</strong>[cite: 1].</span>
-                    </div>
+                    <textarea id="bulkNamesInput" rows="6" placeholder="أحمد بن محمد الشهري
+t123456@moe.gov.sa
+خالد بن عبد الله القحطاني
+t789012@moe.gov.sa" class="w-full border border-slate-300 rounded-xl p-3 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none leading-relaxed"></textarea>
+                    <p class="text-xs text-slate-500 mt-1">يمكنك لصق الأسماء والإيميلات بحيث يكون اسم المعلم في سطر والبريد الوزاري في السطر الذي يليه.</p>
+                </div>
+
+                <div class="bg-amber-50 border border-amber-200 rounded-xl p-3 text-xs text-amber-800 flex items-start gap-2">
+                    <i class="fa-solid fa-cloud text-amber-600 text-base mt-0.5"></i>
+                    <span>سيتم تخزين وإدراج أسماء المعلمين في النظام السحابي الخاص بالمدير د/ عبد الله الشهري.</span>
                 </div>
             </div>
 
@@ -428,7 +426,7 @@ a.alshehri@moe.gov.sa" class="w-full border border-slate-300 rounded-xl p-3 text
                 <button id="cancelModalBtn" class="px-4 py-2 rounded-xl text-slate-600 hover:bg-slate-200 font-semibold text-sm transition">
                     إلغاء
                 </button>
-                <button id="saveNamesBtn" class="bg-blue-900 hover:bg-blue-800 text-white px-5 py-2 rounded-xl font-semibold text-sm transition flex items-center gap-2">
+                <button id="saveNamesBtn" class="bg-blue-900 hover:bg-blue-950 text-white px-5 py-2 rounded-xl font-semibold text-sm transition flex items-center gap-2">
                     <i class="fa-solid fa-cloud-arrow-up"></i>
                     حفظ وإدراج في السحابة
                 </button>
@@ -436,10 +434,10 @@ a.alshehri@moe.gov.sa" class="w-full border border-slate-300 rounded-xl p-3 text
         </div>
     </div>
 
-    <!-- Manage Groups / Departments Modal -->
+    <!-- Modal Manage Departments/Subjects -->
     <div id="groupsModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
         <div class="bg-white rounded-2xl shadow-xl border border-slate-100 w-full max-w-md overflow-hidden transform transition-all">
-            <div class="p-5 bg-blue-900 text-white flex justify-between items-center">
+            <div class="p-5 bg-blue-950 text-white flex justify-between items-center">
                 <h3 class="text-lg font-bold flex items-center gap-2">
                     <i class="fa-solid fa-folder-plus"></i>
                     إدارة الأقسام والتخصصات
@@ -451,14 +449,14 @@ a.alshehri@moe.gov.sa" class="w-full border border-slate-300 rounded-xl p-3 text
             
             <div class="p-6 space-y-4">
                 <div class="flex gap-2">
-                    <input type="text" id="newGroupNameInput" placeholder="اسم القسم الجديد (مثلاً: العلوم)..." class="flex-grow border border-slate-300 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none">
-                    <button onclick="createNewGroup()" class="bg-blue-900 hover:bg-blue-800 text-white px-4 py-2 rounded-xl font-bold text-sm transition">
+                    <input type="text" id="newGroupNameInput" placeholder="اسم القسم الجديد (مثلاً: قسم العلوم)..." class="flex-grow border border-slate-300 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                    <button onclick="createNewGroup()" class="bg-blue-900 hover:bg-blue-950 text-white px-4 py-2 rounded-xl font-bold text-sm transition">
                         إضافة
                     </button>
                 </div>
 
                 <div>
-                    <label class="block text-xs font-bold text-slate-500 mb-2">الأقسام المعتمدة حالياً:</label>
+                    <label class="block text-xs font-bold text-slate-500 mb-2">الأقسام والتخصصات الحالية:</label>
                     <ul id="groupsListContainer" class="space-y-2 max-h-60 overflow-y-auto custom-scrollbar"></ul>
                 </div>
             </div>
@@ -471,10 +469,16 @@ a.alshehri@moe.gov.sa" class="w-full border border-slate-300 rounded-xl p-3 text
         </div>
     </div>
 
-    <!-- Share Report Modal -->
+    <!-- Notification Toast -->
+    <div id="toast" class="fixed bottom-5 left-5 bg-slate-800 text-white px-4 py-3 rounded-xl shadow-lg border border-slate-700 text-sm flex items-center gap-3 transition-all duration-300 opacity-0 pointer-events-none translate-y-2 z-50">
+        <i id="toastIcon" class="fa-solid fa-circle-check text-emerald-400"></i>
+        <span id="toastText">تم الحفظ بنجاح</span>
+    </div>
+
+    <!-- Modal Share Report -->
     <div id="shareModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
         <div class="bg-white rounded-2xl shadow-xl border border-slate-100 w-full max-w-md overflow-hidden transform transition-all">
-            <div class="p-5 bg-blue-900 text-white flex justify-between items-center">
+            <div class="p-5 bg-blue-950 text-white flex justify-between items-center">
                 <h3 class="text-lg font-bold flex items-center gap-2">
                     <i class="fa-solid fa-paper-plane text-amber-300"></i>
                     مشاركة التقرير الإشرافي
@@ -486,12 +490,12 @@ a.alshehri@moe.gov.sa" class="w-full border border-slate-300 rounded-xl p-3 text
             
             <div class="p-6 space-y-4">
                 <p class="text-xs text-slate-600 leading-relaxed font-semibold">
-                    يمكنك مشاركة هذا الرابط مع د/ عبد الله بن ظافر الشهري للاطلاع المباشر على تقارير وإحصائيات الحضور دون إمكانية التعديل:
+                    يمكنك مشاركة هذا الرابط مع المدير د/ عبد الله بن ظافر الشهري للاطلاع المباشر على التقارير والإحصائيات بصلاحية العرض فقط:
                 </p>
 
                 <div class="bg-slate-100 p-3 rounded-xl border border-slate-200 flex items-center justify-between gap-2">
                     <input type="text" id="shareUrlInput" readonly value="" class="bg-transparent text-xs font-mono font-bold text-slate-700 w-full focus:outline-none">
-                    <button onclick="copyShareUrl()" class="bg-blue-900 hover:bg-blue-800 text-white px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1 shrink-0">
+                    <button onclick="copyShareUrl()" class="bg-blue-900 hover:bg-blue-950 text-white px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1 shrink-0">
                         <i class="fa-regular fa-copy"></i>
                         نسخ
                     </button>
@@ -500,7 +504,7 @@ a.alshehri@moe.gov.sa" class="w-full border border-slate-300 rounded-xl p-3 text
                 <div class="grid grid-cols-1 gap-2 pt-2">
                     <button onclick="sendReportToWhatsAppManager()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 px-4 rounded-xl text-sm transition flex items-center justify-center gap-2 shadow">
                         <i class="fa-brands fa-whatsapp text-lg"></i>
-                        إرسال ملخص التقرير عبر واتساب
+                        إرسال ملخص التقرير للمدير عبر واتساب
                     </button>
                 </div>
             </div>
@@ -513,14 +517,8 @@ a.alshehri@moe.gov.sa" class="w-full border border-slate-300 rounded-xl p-3 text
         </div>
     </div>
 
-    <!-- Toast Notification -->
-    <div id="toast" class="fixed bottom-5 left-5 bg-slate-800 text-white px-4 py-3 rounded-xl shadow-lg border border-slate-700 text-sm flex items-center gap-3 transition-all duration-300 opacity-0 pointer-events-none translate-y-2 z-50">
-        <i id="toastIcon" class="fa-solid fa-circle-check text-emerald-400"></i>
-        <span id="toastText">تم الحفظ بنجاح</span>
-    </div>
-
     <script>
-        // إعدادات Firebase الخاصة بمشروعك (aaaa-a2380 / AAAA)
+        // إعدادات Firebase من مشروعك (aaaa-a2380)
         const firebaseConfig = {
             apiKey: "AIzaSyDhd5CSkNMoppGby6uKxHsQC",
             authDomain: "aaaa-a2380.firebaseapp.com",
@@ -535,7 +533,7 @@ a.alshehri@moe.gov.sa" class="w-full border border-slate-300 rounded-xl p-3 text
         // Application State
         let isReadOnly = false; 
         let activeGroup = 'الجميع'; 
-        let groups = ['العلوم', 'الرياضيات', 'اللغة العربية', 'التربية الإسلامية', 'الحاسب الآلي']; 
+        let groups = ['قسم العلوم', 'قسم الرياضيات', 'قسم اللغة العربية', 'القسم الإداري']; 
         let students = []; 
         let allowedStudentsPreset = []; 
         let attendanceData = {}; 
@@ -637,7 +635,7 @@ a.alshehri@moe.gov.sa" class="w-full border border-slate-300 rounded-xl p-3 text
                 if (doc.exists && doc.data().groups && doc.data().groups.length > 0) {
                     groups = doc.data().groups.map(g => g.trim());
                 } else {
-                    groups = ['العلوم', 'الرياضيات', 'اللغة العربية', 'التربية الإسلامية', 'الحاسب الآلي'];
+                    groups = ['قسم العلوم', 'قسم الرياضيات', 'قسم اللغة العربية', 'القسم الإداري'];
                     db.collection("attendance_groups").doc("list").set({ groups: groups });
                 }
                 updateGroupDropdowns();
@@ -736,7 +734,7 @@ a.alshehri@moe.gov.sa" class="w-full border border-slate-300 rounded-xl p-3 text
             });
 
             navigator.clipboard.writeText(textToCopy.trim()).then(() => {
-                showToast('تم نسخ أسماء وإيميلات المعلمين 📋', 'success');
+                showToast('تم نسخ أسماء وإيميلات المعلمين بنجاح 📋', 'success');
             }).catch(() => {
                 showToast('فشل النسخ تلقائياً', 'warning');
             });
@@ -912,15 +910,15 @@ a.alshehri@moe.gov.sa" class="w-full border border-slate-300 rounded-xl p-3 text
 
             const presentList = document.getElementById('dayPresentList');
             const absentList = document.getElementById('dayAbsentList');
+            const permissionList = document.getElementById('dayPermissionList');
             const lateList = document.getElementById('dayLateList');
-            const otherList = document.getElementById('dayOtherList');
 
             presentList.innerHTML = '';
             absentList.innerHTML = '';
+            permissionList.innerHTML = '';
             lateList.innerHTML = '';
-            otherList.innerHTML = '';
 
-            let pCount = 0, aCount = 0, lCount = 0, oCount = 0;
+            let pCount = 0, aCount = 0, permCount = 0, lCount = 0;
 
             const filteredForReport = students.filter(s => {
                 const sGroup = (s.group || '').trim();
@@ -940,29 +938,31 @@ a.alshehri@moe.gov.sa" class="w-full border border-slate-300 rounded-xl p-3 text
                 } else if (status === 'absent') {
                     absentList.appendChild(li);
                     aCount++;
-                } else if (status === 'late') {
-                    lateList.appendChild(li);
-                    lCount++;
+                } else if (status === 'permission') {
+                    permissionList.appendChild(li);
+                    permCount++;
                 } else {
-                    if (status === 'excused') {
-                        li.innerHTML = `<span>${escapeHtml(s.name)}</span> <span class="text-[10px] text-blue-300 font-bold">(بعذر)</span>`;
+                    if (status === 'late') {
+                        li.innerHTML = `<span>${escapeHtml(s.name)}</span> <span class="text-[10px] text-amber-300 font-bold">(متأخر)</span>`;
+                    } else if (status === 'excused') {
+                        li.innerHTML = `<span>${escapeHtml(s.name)}</span> <span class="text-[10px] text-blue-300 font-bold">(إجازة/بعذر)</span>`;
                     } else {
                         li.innerHTML = `<span>${escapeHtml(s.name)}</span> <span class="text-[10px] text-slate-400">(لم يرصد)</span>`;
                     }
-                    otherList.appendChild(li);
-                    oCount++;
+                    lateList.appendChild(li);
+                    lCount++;
                 }
             });
 
             document.getElementById('dayPresentCount').textContent = pCount;
             document.getElementById('dayAbsentCount').textContent = aCount;
+            document.getElementById('dayPermissionCount').textContent = permCount;
             document.getElementById('dayLateCount').textContent = lCount;
-            document.getElementById('dayOtherCount').textContent = oCount;
 
             if (pCount === 0) presentList.innerHTML = '<li class="text-slate-400 py-1">لا يوجد معلمين</li>';
             if (aCount === 0) absentList.innerHTML = '<li class="text-slate-400 py-1">لا يوجد معلمين</li>';
+            if (permCount === 0) permissionList.innerHTML = '<li class="text-slate-400 py-1">لا يوجد معلمين</li>';
             if (lCount === 0) lateList.innerHTML = '<li class="text-slate-400 py-1">لا يوجد معلمين</li>';
-            if (oCount === 0) otherList.innerHTML = '<li class="text-slate-400 py-1">لا يوجد معلمين</li>';
         }
 
         function generateReport() {
@@ -979,7 +979,7 @@ a.alshehri@moe.gov.sa" class="w-full border border-slate-300 rounded-xl p-3 text
             document.getElementById('repTotalDays').textContent = `${totalRecordedDays} يوم`;
             reportStatusText.textContent = `تم تحليل سجلات ${totalRecordedDays} يوم خلال هذا النطاق الزمني`;
 
-            let overallPresent = 0, overallAbsent = 0, overallLate = 0;
+            let overallPresent = 0, overallAbsent = 0, overallPermission = 0, overallLate = 0;
 
             const activeStudents = students.filter(s => {
                 const sGroup = (s.group || '').trim();
@@ -989,7 +989,7 @@ a.alshehri@moe.gov.sa" class="w-full border border-slate-300 rounded-xl p-3 text
 
             let studentStats = {};
             activeStudents.forEach(s => {
-                studentStats[s.id] = { name: s.name, email: s.email, group: s.group, present: 0, absent: 0, late: 0, excused: 0 };
+                studentStats[s.id] = { name: s.name, email: s.email, group: s.group, present: 0, absent: 0, permission: 0, late: 0, excused: 0 };
             });
 
             relevantDates.forEach(date => {
@@ -999,18 +999,19 @@ a.alshehri@moe.gov.sa" class="w-full border border-slate-300 rounded-xl p-3 text
                         const st = dayRecords[studentId];
                         if (st === 'present') { studentStats[studentId].present++; overallPresent++; }
                         else if (st === 'absent') { studentStats[studentId].absent++; overallAbsent++; }
+                        else if (st === 'permission') { studentStats[studentId].permission++; overallPermission++; }
                         else if (st === 'late') { studentStats[studentId].late++; overallLate++; }
                         else if (st === 'excused') { studentStats[studentId].excused++; }
                     }
                 });
             });
 
-            const grandTotalEntries = overallPresent + overallAbsent + overallLate;
+            const grandTotalEntries = overallPresent + overallAbsent + overallPermission + overallLate;
             const avgRate = grandTotalEntries > 0 ? Math.round((overallPresent / grandTotalEntries) * 100) : 0;
 
             document.getElementById('repAvgPresenceRate').textContent = `${avgRate}%`;
             document.getElementById('repTotalAbsences').textContent = overallAbsent;
-            document.getElementById('repTotalLate').textContent = overallLate;
+            document.getElementById('repTotalPermission').textContent = overallPermission;
 
             reportTableBody.innerHTML = '';
 
@@ -1021,8 +1022,8 @@ a.alshehri@moe.gov.sa" class="w-full border border-slate-300 rounded-xl p-3 text
 
             activeStudents.forEach((student) => {
                 const stat = studentStats[student.id];
-                const totalEvaluated = stat.present + stat.absent + stat.late;
-                const attendanceRate = totalEvaluated > 0 ? Math.round(((stat.present + stat.late) / totalEvaluated) * 100) : 0;
+                const totalEvaluated = stat.present + stat.absent + stat.permission + stat.late;
+                const attendanceRate = totalEvaluated > 0 ? Math.round(((stat.present + stat.permission) / totalEvaluated) * 100) : 0;
 
                 let rateBadgeClass = "bg-emerald-100 text-emerald-800";
                 if (attendanceRate < 85) rateBadgeClass = "bg-rose-100 text-rose-800";
@@ -1038,8 +1039,8 @@ a.alshehri@moe.gov.sa" class="w-full border border-slate-300 rounded-xl p-3 text
                     <td class="p-4 text-center font-semibold text-slate-600">${escapeHtml(student.group)}</td>
                     <td class="p-4 text-center font-semibold text-emerald-600">${stat.present}</td>
                     <td class="p-4 text-center font-semibold text-rose-600">${stat.absent}</td>
-                    <td class="p-4 text-center font-semibold text-amber-600">${stat.late}</td>
-                    <td class="p-4 text-center font-semibold text-blue-600">${stat.excused}</td>
+                    <td class="p-4 text-center font-semibold text-purple-600">${stat.permission}</td>
+                    <td class="p-4 text-center font-semibold text-amber-600">${stat.late + stat.excused}</td>
                     <td class="p-4 text-center">
                         <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold ${rateBadgeClass}">
                             ${attendanceRate}%
@@ -1069,22 +1070,23 @@ a.alshehri@moe.gov.sa" class="w-full border border-slate-300 rounded-xl p-3 text
 
             let csvContent = "\uFEFF"; 
             csvContent += `تقرير انضباط المعلمين - القسم: (${activeGroup}) من ${start} إلى ${end}\n`;
-            csvContent += `اسم المعلم,البريد الإلكتروني,القسم/التخصص,أيام الحضور,أيام الغياب,أيام التأخر,بعذر,نسبة الحضور\n`;
+            csvContent += `اسم المعلم,البريد الإلكتروني,القسم/التخصص,أيام الحضور,أيام الغياب,أيام الاستئذان,التأخر/عذر,نسبة الحضور\n`;
 
             activeStudents.forEach(student => {
-                let present = 0, absent = 0, late = 0, excused = 0;
+                let present = 0, absent = 0, permission = 0, late = 0, excused = 0;
                 relevantDates.forEach(date => {
                     const st = (allAttendanceRecords[date] || {})[student.id];
                     if (st === 'present') present++;
                     else if (st === 'absent') absent++;
+                    else if (st === 'permission') permission++;
                     else if (st === 'late') late++;
                     else if (st === 'excused') excused++;
                 });
 
-                const totalEval = present + absent + late;
-                const rate = totalEval > 0 ? Math.round(((present + late) / totalEval) * 100) : 0;
+                const totalEval = present + absent + permission + late;
+                const rate = totalEval > 0 ? Math.round(((present + permission) / totalEval) * 100) : 0;
 
-                csvContent += `"${student.name.replace(/"/g, '""')}","${student.email}","${student.group}",${present},${absent},${late},${excused},"${rate}%"\n`;
+                csvContent += `"${student.name.replace(/"/g, '""')}","${student.email}","${student.group}",${present},${absent},${permission},${late + excused},"${rate}%"\n`;
             });
 
             const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
@@ -1143,10 +1145,12 @@ a.alshehri@moe.gov.sa" class="w-full border border-slate-300 rounded-xl p-3 text
                     statusBadge = `<span class="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800"><i class="fa-solid fa-check text-emerald-600"></i> حاضر</span>`;
                 } else if (status === 'absent') {
                     statusBadge = `<span class="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold bg-rose-100 text-rose-800"><i class="fa-solid fa-xmark text-rose-600"></i> غائب</span>`;
+                } else if (status === 'permission') {
+                    statusBadge = `<span class="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold bg-purple-100 text-purple-800"><i class="fa-solid fa-person-walking-arrow-right text-purple-600"></i> مستأذن</span>`;
                 } else if (status === 'late') {
                     statusBadge = `<span class="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-800"><i class="fa-solid fa-clock text-amber-600"></i> متأخر</span>`;
                 } else if (status === 'excused') {
-                    statusBadge = `<span class="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold bg-blue-100 text-blue-800"><i class="fa-solid fa-file-signature text-blue-600"></i> بعذر / إجازة</span>`;
+                    statusBadge = `<span class="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold bg-blue-100 text-blue-800"><i class="fa-solid fa-file-signature text-blue-600"></i> إجازة / بعذر</span>`;
                 }
 
                 if (isReadOnly) {
@@ -1175,17 +1179,20 @@ a.alshehri@moe.gov.sa" class="w-full border border-slate-300 rounded-xl p-3 text
                         </td>
                         <td class="p-4 text-center">${statusBadge}</td>
                         <td class="p-4">
-                            <div class="flex items-center justify-center gap-1.5">
-                                <button onclick="setStatus('${student.id}', 'present')" class="flex-1 max-w-[85px] py-1.5 px-2 rounded-lg text-xs font-bold border transition ${status === 'present' ? 'bg-emerald-600 text-white border-emerald-600 shadow-sm' : 'bg-white text-emerald-700 border-emerald-200 hover:bg-emerald-50'}">
+                            <div class="flex items-center justify-center gap-1.5 flex-wrap">
+                                <button onclick="setStatus('${student.id}', 'present')" class="py-1.5 px-2 rounded-lg text-xs font-bold border transition ${status === 'present' ? 'bg-emerald-600 text-white border-emerald-600 shadow-sm' : 'bg-white text-emerald-700 border-emerald-200 hover:bg-emerald-50'}">
                                     <i class="fa-solid fa-check"></i> حاضر
                                 </button>
-                                <button onclick="setStatus('${student.id}', 'absent')" class="flex-1 max-w-[85px] py-1.5 px-2 rounded-lg text-xs font-bold border transition ${status === 'absent' ? 'bg-rose-600 text-white border-rose-600 shadow-sm' : 'bg-white text-rose-700 border-rose-200 hover:bg-rose-50'}">
+                                <button onclick="setStatus('${student.id}', 'absent')" class="py-1.5 px-2 rounded-lg text-xs font-bold border transition ${status === 'absent' ? 'bg-rose-600 text-white border-rose-600 shadow-sm' : 'bg-white text-rose-700 border-rose-200 hover:bg-rose-50'}">
                                     <i class="fa-solid fa-xmark"></i> غائب
                                 </button>
+                                <button onclick="setStatus('${student.id}', 'permission')" class="py-1.5 px-2 rounded-lg text-xs font-bold border transition ${status === 'permission' ? 'bg-purple-600 text-white border-purple-600 shadow-sm' : 'bg-white text-purple-700 border-purple-200 hover:bg-purple-50'}">
+                                    <i class="fa-solid fa-person-walking-arrow-right"></i> مستأذن
+                                </button>
                                 <select onchange="setStatus('${student.id}', this.value)" class="py-1.5 px-2 text-xs border border-slate-300 rounded-lg bg-white text-slate-700 focus:outline-none focus:ring-1 focus:ring-blue-500">
-                                    <option value="" ${status === 'unmarked' ? 'selected' : ''}>خيارات...</option>
+                                    <option value="" ${status === 'unmarked' ? 'selected' : ''}>أخرى...</option>
                                     <option value="late" ${status === 'late' ? 'selected' : ''}>متأخر</option>
-                                    <option value="excused" ${status === 'excused' ? 'selected' : ''}>بعذر / إجازة</option>
+                                    <option value="excused" ${status === 'excused' ? 'selected' : ''}>إجازة / بعذر</option>
                                     <option value="unmarked">مسح الإجراء</option>
                                 </select>
                             </div>
@@ -1240,7 +1247,7 @@ a.alshehri@moe.gov.sa" class="w-full border border-slate-300 rounded-xl p-3 text
         };
 
         function updateStats() {
-            let presentCount = 0, absentCount = 0, otherCount = 0;
+            let presentCount = 0, absentCount = 0, permissionCount = 0, otherCount = 0;
 
             const activeStudents = students.filter(s => {
                 const sGroup = (s.group || '').trim();
@@ -1252,12 +1259,14 @@ a.alshehri@moe.gov.sa" class="w-full border border-slate-300 rounded-xl p-3 text
                 const status = attendanceData[student.id];
                 if (status === 'present') presentCount++;
                 else if (status === 'absent') absentCount++;
+                else if (status === 'permission') permissionCount++;
                 else if (status === 'late' || status === 'excused') otherCount++;
             });
 
             document.getElementById('statTotal').textContent = activeStudents.length;
             document.getElementById('statPresent').textContent = presentCount;
             document.getElementById('statAbsent').textContent = absentCount;
+            document.getElementById('statPermission').textContent = permissionCount;
             document.getElementById('statOther').textContent = otherCount;
         }
 
@@ -1333,7 +1342,6 @@ a.alshehri@moe.gov.sa" class="w-full border border-slate-300 rounded-xl p-3 text
             document.getElementById('closeModalBtn').addEventListener('click', closeModal);
             document.getElementById('cancelModalBtn').addEventListener('click', closeModal);
 
-            // حفظ وإدراج أسماء المعلمين وإيميلاتهم دفعة واحدة
             document.getElementById('saveNamesBtn').addEventListener('click', async () => {
                 if (isReadOnly) return;
                 const rawText = bulkNamesInput.value.trim();
@@ -1348,7 +1356,6 @@ a.alshehri@moe.gov.sa" class="w-full border border-slate-300 rounded-xl p-3 text
                 try {
                     const batch = db.batch();
                     
-                    // تحليل القائمة بحيث يكون سطر للاسم والسطر التالي للإيميل
                     for (let i = 0; i < lines.length; i++) {
                         let line1 = lines[i];
                         let line2 = lines[i+1];
@@ -1358,7 +1365,7 @@ a.alshehri@moe.gov.sa" class="w-full border border-slate-300 rounded-xl p-3 text
                         if (line2 && line2.includes('@')) {
                             name = line1.replace(/@\S+/g, '').trim();
                             email = line2.trim().toLowerCase();
-                            i++; // تجاوز سطر الإيميل
+                            i++; 
                         } else {
                             if (line1.includes('@')) {
                                 let parts = line1.split(/\s+/);
@@ -1416,8 +1423,9 @@ a.alshehri@moe.gov.sa" class="w-full border border-slate-300 rounded-xl p-3 text
                 let translatedStatus = 'لم يرصد';
                 if (status === 'present') translatedStatus = 'حاضر';
                 if (status === 'absent') translatedStatus = 'غائب';
+                if (status === 'permission') translatedStatus = 'مستأذن';
                 if (status === 'late') translatedStatus = 'متأخر';
-                if (status === 'excused') translatedStatus = 'بعذر/إجازة';
+                if (status === 'excused') translatedStatus = 'إجازة/بعذر';
 
                 csvContent += `"${student.name.replace(/"/g, '""')}","${student.email}","${student.group}","${translatedStatus}"\n`;
             });
@@ -1455,7 +1463,7 @@ a.alshehri@moe.gov.sa" class="w-full border border-slate-300 rounded-xl p-3 text
             const end = document.getElementById('reportEndDate').value;
             const relevantDates = Object.keys(allAttendanceRecords).filter(date => date >= start && date <= end);
             
-            let overallPresent = 0, overallAbsent = 0, overallLate = 0;
+            let overallPresent = 0, overallAbsent = 0, overallPermission = 0;
             const activeStudents = students.filter(s => {
                 const sGroup = (s.group || '').trim();
                 const actGroup = activeGroup.trim();
@@ -1468,14 +1476,14 @@ a.alshehri@moe.gov.sa" class="w-full border border-slate-300 rounded-xl p-3 text
                     const st = dayRecords[s.id];
                     if (st === 'present') overallPresent++;
                     else if (st === 'absent') overallAbsent++;
-                    else if (st === 'late') overallLate++;
+                    else if (st === 'permission') overallPermission++;
                 });
             });
 
-            const grandTotal = overallPresent + overallAbsent + overallLate;
+            const grandTotal = overallPresent + overallAbsent + overallPermission;
             const avgRate = grandTotal > 0 ? Math.round((overallPresent / grandTotal) * 100) : 0;
 
-            const message = `سعادة مدير المدرسة د/ عبد الله بن ظافر الشهري المحترم،%0A%0Aإليكم تقرير متابعة انضباط المعلمين - القسم: (${activeGroup})%0A- إجمالي أيام الرصد: ${relevantDates.length} يوم%0A- نسبة الانضباط العامة: ${avgRate}%%%0A- إجمالي الغياب: ${overallAbsent}%0A- إجمالي التأخر: ${overallLate}%0A%0Aيمكنكم الاطلاع على التفاصيل الكاملة عبر الرابط التالي:%0A${shareUrl}`;
+            const message = `سعادة مدير المدرسة د/ عبد الله بن ظافر الشهري المحترم،%0A%0Aإليكم تقرير متابعة انضباط المعلمين - القسم: (${activeGroup})%0A- إجمالي أيام الرصد: ${relevantDates.length} يوم%0A- نسبة الانضباط العامة: ${avgRate}%%%0A- إجمالي الغياب: ${overallAbsent}%0A- إجمالي الاستئذان: ${overallPermission}%0A%0Aيمكنكم الاطلاع على التفاصيل الكاملة عبر الرابط التالي:%0A${shareUrl}`;
 
             window.open(`https://api.whatsapp.com/send?text=${message}`, '_blank');
         }
