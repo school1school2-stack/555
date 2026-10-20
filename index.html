@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>نظام متابعة حضور وانضباط المعلمين - د/ عبد الله بن ظافر الشهري</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
+    <!-- Firebase SDK v8 -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    <style>
+        body {
+            font-family: 'Tajawal', sans-serif;
+            background-color: #f8fafc;
+        }
+        .custom-scrollbar::-webkit-scrollbar {
+            height: 8px;
+            width: 8px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #f1f5f9;
+            border-radius: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+        .tab-active {
+            border-bottom: 3px solid #1e3a8a;
+            color: #1e3a8a;
+            font-weight: 700;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col">
+
+    <!-- Header Section -->
+    <header class="bg-blue-900 text-white shadow-lg border-b border-blue-950">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex flex-col md:flex-row justify-between items-center gap-4">
+            <div class="flex items-center space-x-3 space-x-reverse">
+                <div class="p-3 bg-blue-800 rounded-xl shadow-inner border border-blue-700">
+                    <i class="fa-solid fa-user-tie text-2xl text-amber-300"></i>
+                </div>
+                <div>
+                    <h1 class="text-2xl font-black tracking-wide">نظام متابعة حضور وانضباط المعلمين</h1>
+                    <p class="text-blue-200 text-sm font-medium">إشراف مدير المدرسة: <span class="text-amber-300 font-bold">د/ عبد الله بن ظافر الشهري</span></p>
+                </div>
+            </div>
+            
+            <div class="flex items-center gap-3">
+                <button id="shareManagerBtn" onclick="shareReportWithManager()" class="bg-amber-400 hover:bg-amber-500 text-blue-950 font-bold px-3 py-2 rounded-lg border border-amber-300 shadow flex items-center gap-2 text-sm transition">
+                    <i class="fa-solid fa-share-nodes text-blue-950"></i>
+                    <span>مشاركة تقرير المتابعة</span>
+                </button>
+                <div id="cloudBadge" class="bg-blue-950/80 px-4 py-2 rounded-lg border border-blue-700/50 flex items-center gap-2 text-sm">
+                    <i id="cloudIcon" class="fa-solid fa-cloud text-emerald-400 animate-pulse"></i>
+                    <span id="cloudStatus" class="font-medium text-blue-100">السحابة: متصل بالخادم...</span>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Read-Only Mode Banner -->
+    <div id="readOnlyBanner" class="hidden bg-amber-500 text-slate-950 font-bold px-4 py-2.5 text-center text-sm shadow-md flex items-center justify-center gap-2">
+        <i class="fa-solid fa-eye text-lg"></i>
+        <span>وضع العرض التقريري فقط (تقارير متابعة انضباط المعلمين)</span>
+    </div>
+
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex-grow w-full">
+
+        <!-- Navigation Tabs -->
+        <div id="tabsContainer" class="flex border-b border-slate-200 mb-6 bg-white rounded-t-xl px-4 pt-2">
+            <button id="dailyTabBtn" onclick="switchTab('daily')" class="tab-active py-3 px-6 text-sm font-medium transition flex items-center gap-2">
+                <i class="fa-solid fa-clipboard-user text-blue-900"></i>
+                كشف الرصد اليومي للحضور
+            </button>
+            <button id="reportsTabBtn" onclick="switchTab('reports')" class="text-slate-500 hover:text-blue-900 py-3 px-6 text-sm font-medium transition flex items-center gap-2">
+                <i class="fa-solid fa-chart-line text-blue-900"></i>
+                التقارير والإحصائيات الشاملة
+            </button>
+        </div>
+
+        <!-- Class/Department Selector Bar -->
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-4 mb-6 flex flex-col sm:flex-row justify-between items-center gap-4">
+            <div class="flex items-center gap-3 w-full sm:w-auto">
+                <div class="p-2.5 bg-blue-50 rounded-xl text-blue-900 font-bold flex items-center gap-2 text-sm">
+                    <i class="fa-solid fa-sitemap text-blue-800"></i>
+                    القسم / التخصص:
+                </div>
+                <select id="classSelector" onchange="changeActiveGroup(this.value)" class="bg-blue-900 text-white font-bold px-4 py-2 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none transition flex-grow sm:flex-grow-0">
+                    <option value="الجميع">جميع التخصصات والأقسام</option>
+                </select>
+            </div>
+
+            <div class="flex items-center gap-2 w-full sm:w-auto justify-end flex-wrap">
+                <button onclick="copyCurrentClassData()" class="bg-blue-50 hover:bg-blue-100 text-blue-900 font-bold px-3 py-2 rounded-xl text-xs transition flex items-center gap-1.5 border border-blue-200">
+                    <i class="fa-solid fa-copy"></i>
+                    نسخ القائمة
+                </button>
+                <button onclick="openAddModalWithClass()" class="bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-bold px-3 py-2 rounded-xl text-xs transition flex items-center gap-1.5 border border-emerald-200">
+                    <i class="fa-solid fa-paste"></i>
+                    لصق واستيراد
+                </button>
+                <button onclick="deleteCurrentClassData()" class="bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold px-3 py-2 rounded-xl text-xs transition flex items-center gap-1.5 border border-rose-200">
+                    <i class="fa-solid fa-trash-can"></i>
+                    حذف القسم كامل
+                </button>
+                <button id="manageGroupsBtn" onclick="openManageGroupsModal()" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold px-3 py-2 rounded-xl text-xs transition flex items-center gap-2 border border-slate-300">
+                    <i class="fa-solid fa-folder-plus text-blue-900"></i>
+                    إدارة الأقسام
+                </button>
+            </div>
+        </div>
+
+        <!-- ==================== DAILY ATTENDANCE SECTION ==================== -->
+        <div id="dailySection">
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 mb-6">
+                <div class="flex flex-col lg:flex-row justify-between items-stretch lg:items-center gap-4">
+                    
+                    <!-- Date Picker Controls -->
+                    <div class="flex flex-wrap items-center gap-3">
+                        <label class="font-bold text-slate-700 flex items-center gap-2">
+                            <i class="fa-regular fa-calendar-days text-blue-900"></i>
+                            تاريخ اليوم:
+                        </label>
+                        <input type="date" id="selectedDate" class="bg-slate-50 border border-slate-300 rounded-xl px-4 py-2 font-medium focus:ring-2 focus:ring-blue-500 focus:outline-none transition">
+                        <button id="todayBtn" class="bg-blue-50 hover:bg-blue-100 text-blue-900 font-semibold px-3 py-2 rounded-xl text-sm transition">
+                            اليوم
+                        </button>
+                    </div>
+
+                    <!-- Quick Controls and Modal Triggers -->
+                    <div class="flex flex-wrap items-center gap-2">
+                        <div id="quickAddControls" class="relative flex items-center gap-1">
+                            <div class="relative">
+                                <input type="text" id="quickStudentInput" list="presetStudentsList" placeholder="ابحث أو اكتب اسم معلم..." class="bg-slate-50 border border-slate-300 text-slate-800 font-medium px-3 py-2 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none w-[200px]" autocomplete="off">
+                                <datalist id="presetStudentsList"></datalist>
+                            </div>
+                            <button id="addQuickStudentBtn" class="bg-blue-900 hover:bg-blue-800 text-white p-2 rounded-xl text-sm transition shadow-sm flex items-center justify-center w-9 h-9" title="إضافة المعلم للقسم الحالي">
+                                <i class="fa-solid fa-plus"></i>
+                            </button>
+                        </div>
+
+                        <!-- زر إدراج الأسماء دفعة واحدة -->
+                        <button id="openAddModalBtn" class="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold px-4 py-2 rounded-xl text-sm transition flex items-center gap-2 shadow-sm">
+                            <i class="fa-solid fa-user-plus"></i>
+                            إدراج أسماء (دفعة واحدة)
+                        </button>
+
+                        <button id="exportExcelBtn" class="bg-blue-800 hover:bg-blue-900 text-white font-semibold px-4 py-2 rounded-xl text-sm transition flex items-center gap-2 shadow-sm">
+                            <i class="fa-solid fa-file-excel"></i>
+                            تصدير الكشف CSV
+                        </button>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- Dashboard Counter Cards -->
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
+                    <div>
+                        <p class="text-xs text-slate-500 font-bold mb-1">إجمالي المعلمين بالقسم</p>
+                        <h3 id="statTotal" class="text-2xl font-black text-slate-800">0</h3>
+                    </div>
+                    <div class="w-12 h-12 bg-slate-100 rounded-xl flex items-center justify-center text-slate-600 text-xl">
+                        <i class="fa-solid fa-users text-blue-900"></i>
+                    </div>
+                </div>
+
+                <div class="bg-white p-4 rounded-xl border border-emerald-100 shadow-sm flex items-center justify-between">
+                    <div>
+                        <p class="text-xs text-emerald-600 font-bold mb-1">حاضر / منتظم</p>
+                        <h3 id="statPresent" class="text-2xl font-black text-emerald-600">0</h3>
+                    </div>
+                    <div class="w-12 h-12 bg-emerald-50 rounded-xl flex items-center justify-center text-emerald-600 text-xl">
+                        <i class="fa-solid fa-circle-check"></i>
+                    </div>
+                </div>
+
+                <div class="bg-white p-4 rounded-xl border border-rose-100 shadow-sm flex items-center justify-between">
+                    <div>
+                        <p class="text-xs text-rose-600 font-bold mb-1">غائب</p>
+                        <h3 id="statAbsent" class="text-2xl font-black text-rose-600">0</h3>
+                    </div>
+                    <div class="w-12 h-12 bg-rose-50 rounded-xl flex items-center justify-center text-rose-600 text-xl">
+                        <i class="fa-solid fa-circle-xmark"></i>
+                    </div>
+                </div>
+
+                <div class="bg-white p-4 rounded-xl border border-amber-100 shadow-sm flex items-center justify-between">
+                    <div>
+                        <p class="text-xs text-amber-600 font-bold mb-1">متأخر / بعذر</p>
+                        <h3 id="statOther" class="text-2xl font-black text-amber-600">0</h3>
+                    </div>
+                    <div class="w-12 h-12 bg-amber-50 rounded-xl flex items-center justify-center text-amber-600 text-xl">
+                        <i class="fa-solid fa-clock"></i>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Attendance Table -->
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+                <div class="p-4 bg-slate-50/70 border-b border-slate-200 flex flex-col md:flex-row justify-between items-center gap-3">
+                    <div class="relative w-full md:w-72">
+                        <i class="fa-solid fa-magnifying-glass absolute right-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                        <input type="text" id="searchInput" placeholder="بحث عن اسم معلم أو بريد..." class="w-full pr-9 pl-4 py-2 text-sm bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                    </div>
+                    <div class="text-xs text-slate-500 font-medium">
+                        يتم حفظ واستعادة الحالة سحابياً وفورياً لقاعدة بيانات المدرسة
+                    </div>
+                </div>
+
+                <div class="overflow-x-auto custom-scrollbar">
+                    <table class="w-full text-right border-collapse min-w-[650px]">
+                        <thead>
+                            <tr class="bg-slate-100/80 text-slate-600 text-xs uppercase font-bold border-b border-slate-200">
+                                <th class="p-4">بيانات المعلم (الاسم والبريد الوزاري)</th>
+                                <th class="p-4 text-center w-36">القسم / التخصص</th>
+                                <th class="p-4 text-center">حالة الحضور اليوم</th>
+                                <th class="p-4 text-center edit-column">تحديد الإجراء اليومي</th>
+                                <th class="p-4 text-center w-28 edit-column">إجراءات</th>
+                            </tr>
+                        </thead>
+                        <tbody id="studentsTableBody" class="divide-y divide-slate-100 text-sm"></tbody>
+                    </table>
+                </div>
+
+                <!-- Empty State -->
+                <div id="emptyState" class="hidden p-12 text-center">
+                    <div class="w-16 h-16 bg-blue-50 text-blue-800 rounded-full flex items-center justify-center mx-auto mb-4 text-2xl">
+                        <i class="fa-solid fa-user-slash"></i>
+                    </div>
+                    <h3 class="text-lg font-bold text-slate-700 mb-1">لا يوجد معلمين مضافين في هذا القسم حتى الآن</h3>
+                    <p class="text-slate-500 text-sm max-w-md mx-auto mb-4">يمكنك إضافة قائمة المعلمين بالضغط على زر "إدراج أسماء (دفعة واحدة)" وإلصاق الأسماء والإيميلات متتالية.</p>
+                    <button id="emptyStateAddBtn" onclick="document.getElementById('openAddModalBtn').click()" class="bg-blue-900 hover:bg-blue-800 text-white text-sm font-semibold px-5 py-2.5 rounded-xl transition">
+                        إضافة معلمي القسم الآن
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ==================== REPORTS SECTION ==================== -->
+        <div id="reportsSection" class="hidden space-y-6">
+            
+            <!-- Day Lookup Card -->
+            <div class="bg-blue-900 text-white rounded-2xl shadow-md p-6 border border-blue-800">
+                <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-4">
+                    <div>
+                        <h3 class="text-lg font-bold flex items-center gap-2 text-amber-300">
+                            <i class="fa-solid fa-calendar-day"></i>
+                            استعلام حركات الحضور والانظباط ليوم محدد
+                        </h3>
+                        <p class="text-blue-200 text-xs mt-1">سجل تفاصيل الحضور والغياب والتأخر لكادر التدريس</p>
+                    </div>
+                    <div class="flex items-center gap-3 bg-blue-800/80 p-2 rounded-xl border border-blue-700">
+                        <label class="font-bold text-sm text-blue-100">اختر التاريخ:</label>
+                        <input type="date" id="singleReportDate" onchange="renderSingleDayReport()" class="bg-blue-950 text-white border border-blue-600 rounded-lg px-3 py-1.5 text-sm font-medium focus:ring-2 focus:ring-amber-400 focus:outline-none">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mt-4">
+                    <div class="bg-emerald-950/50 border border-emerald-500/30 rounded-xl p-4">
+                        <div class="flex justify-between items-center mb-2 pb-2 border-b border-emerald-500/30">
+                            <span class="font-bold text-emerald-300 text-sm flex items-center gap-1.5">
+                                <i class="fa-solid fa-circle-check"></i> الحاضرون
+                            </span>
+                            <span id="dayPresentCount" class="bg-emerald-500/20 text-emerald-300 text-xs px-2 py-0.5 rounded-full font-bold">0</span>
+                        </div>
+                        <ul id="dayPresentList" class="space-y-1 max-h-48 overflow-y-auto custom-scrollbar text-xs text-emerald-100"></ul>
+                    </div>
+
+                    <div class="bg-rose-950/50 border border-rose-500/30 rounded-xl p-4">
+                        <div class="flex justify-between items-center mb-2 pb-2 border-b border-rose-500/30">
+                            <span class="font-bold text-rose-300 text-sm flex items-center gap-1.5">
+                                <i class="fa-solid fa-circle-xmark"></i> الغائبون
+                            </span>
+                            <span id="dayAbsentCount" class="bg-rose-500/20 text-rose-300 text-xs px-2 py-0.5 rounded-full font-bold">0</span>
+                        </div>
+                        <ul id="dayAbsentList" class="space-y-1 max-h-48 overflow-y-auto custom-scrollbar text-xs text-rose-100"></ul>
+                    </div>
+
+                    <div class="bg-amber-950/50 border border-amber-500/30 rounded-xl p-4">
+                        <div class="flex justify-between items-center mb-2 pb-2 border-b border-amber-500/30">
+                            <span class="font-bold text-amber-300 text-sm flex items-center gap-1.5">
+                                <i class="fa-solid fa-clock"></i> المتأخرون
+                            </span>
+                            <span id="dayLateCount" class="bg-amber-500/20 text-amber-300 text-xs px-2 py-0.5 rounded-full font-bold">0</span>
+                        </div>
+                        <ul id="dayLateList" class="space-y-1 max-h-48 overflow-y-auto custom-scrollbar text-xs text-amber-100"></ul>
+                    </div>
+
+                    <div class="bg-slate-800/80 border border-slate-600 rounded-xl p-4">
+                        <div class="flex justify-between items-center mb-2 pb-2 border-b border-slate-600">
+                            <span class="font-bold text-slate-300 text-sm flex items-center gap-1.5">
+                                <i class="fa-solid fa-file-signature"></i> بعذر / إجازة / لم يرصد
+                            </span>
+                            <span id="dayOtherCount" class="bg-slate-700 text-slate-300 text-xs px-2 py-0.5 rounded-full font-bold">0</span>
+                        </div>
+                        <ul id="dayOtherList" class="space-y-1 max-h-48 overflow-y-auto custom-scrollbar text-xs text-slate-200"></ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Range Statistics -->
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5">
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                    <div class="flex flex-wrap items-center gap-3">
+                        <span class="font-bold text-slate-700 text-sm flex items-center gap-2">
+                            <i class="fa-solid fa-filter text-blue-900"></i>
+                            نطاق التقرير التراكمي للمعلمين:
+                        </span>
+                        <div class="flex items-center gap-2 text-sm">
+                            <label class="text-slate-500">من:</label>
+                            <input type="date" id="reportStartDate" class="bg-slate-50 border border-slate-300 rounded-xl px-3 py-1.5 text-sm font-medium focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                        </div>
+                        <div class="flex items-center gap-2 text-sm">
+                            <label class="text-slate-500">إلى:</label>
+                            <input type="date" id="reportEndDate" class="bg-slate-50 border border-slate-300 rounded-xl px-3 py-1.5 text-sm font-medium focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                        </div>
+                        <button onclick="generateReport()" class="bg-blue-900 hover:bg-blue-800 text-white font-semibold px-4 py-1.5 rounded-xl text-sm transition">
+                            عرض التقرير
+                        </button>
+                    </div>
+
+                    <button onclick="exportReportCSV()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold px-4 py-2 rounded-xl text-sm transition flex items-center gap-2 shadow-sm">
+                        <i class="fa-solid fa-file-csv"></i>
+                        تصدير التقرير CSV
+                    </button>
+                </div>
+            </div>
+
+            <!-- Overview Stats Cards -->
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+                    <p class="text-xs text-slate-500 font-bold mb-1">إجمالي أيام الرصد</p>
+                    <h3 id="repTotalDays" class="text-2xl font-black text-slate-800">0 يوم</h3>
+                </div>
+
+                <div class="bg-white p-5 rounded-2xl border border-emerald-200 shadow-sm">
+                    <p class="text-xs text-emerald-600 font-bold mb-1">نسبة الانضباط العامة</p>
+                    <h3 id="repAvgPresenceRate" class="text-2xl font-black text-emerald-600">0%</h3>
+                </div>
+
+                <div class="bg-white p-5 rounded-2xl border border-rose-200 shadow-sm">
+                    <p class="text-xs text-rose-600 font-bold mb-1">إجمالي حالات الغياب</p>
+                    <h3 id="repTotalAbsences" class="text-2xl font-black text-rose-600">0</h3>
+                </div>
+
+                <div class="bg-white p-5 rounded-2xl border border-amber-200 shadow-sm">
+                    <p class="text-xs text-amber-600 font-bold mb-1">إجمالي التأخرات</p>
+                    <h3 id="repTotalLate" class="text-2xl font-black text-amber-600">0</h3>
+                </div>
+            </div>
+
+            <!-- Detailed Table -->
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+                <div class="p-4 bg-slate-50 border-b border-slate-200 flex justify-between items-center">
+                    <h3 class="font-bold text-slate-800 text-sm flex items-center gap-2">
+                        <i class="fa-solid fa-users-viewfinder text-blue-900"></i>
+                        تقرير سجل حضور وانضباط المعلمين التفصيلي
+                    </h3>
+                    <span id="reportStatusText" class="text-xs text-slate-500">جاري تحميل البيانات...</span>
+                </div>
+
+                <div class="overflow-x-auto custom-scrollbar">
+                    <table class="w-full text-right border-collapse min-w-[700px]">
+                        <thead>
+                            <tr class="bg-slate-100/80 text-slate-600 text-xs uppercase font-bold border-b border-slate-200">
+                                <th class="p-4">اسم المعلم والبريد</th>
+                                <th class="p-4 text-center">القسم / التخصص</th>
+                                <th class="p-4 text-center text-emerald-700">أيام الحضور</th>
+                                <th class="p-4 text-center text-rose-700">أيام الغياب</th>
+                                <th class="p-4 text-center text-amber-700">أيام التأخر</th>
+                                <th class="p-4 text-center text-blue-700">بعذر</th>
+                                <th class="p-4 text-center">نسبة الحضور</th>
+                            </tr>
+                        </thead>
+                        <tbody id="reportTableBody" class="divide-y divide-slate-100 text-sm"></tbody>
+                    </table>
+                </div>
+            </div>
+
+        </div>
+
+    </main>
+
+    <!-- Modal for Bulk Adding Names (إدراج أسماء دفعة واحدة) -->
+    <div id="addModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white rounded-2xl shadow-xl border border-slate-100 w-full max-w-xl overflow-hidden transform transition-all">
+            <div class="p-5 bg-blue-900 text-white flex justify-between items-center">
+                <h3 class="text-lg font-bold flex items-center gap-2">
+                    <i class="fa-solid fa-users-rectangle"></i>
+                    إدراج أسماء المعلمين وإيميلاتهم (دفعة واحدة)
+                </h3>
+                <button id="closeModalBtn" class="text-blue-200 hover:text-white transition">
+                    <i class="fa-solid fa-xmark text-xl"></i>
+                </button>
+            </div>
+            
+            <div class="p-6 space-y-4">
+                <div>
+                    <label class="block text-sm font-bold text-slate-700 mb-1">اختر القسم / التخصص المستهدف:</label>
+                    <select id="modalGroupSelector" class="w-full border border-slate-300 rounded-xl p-2.5 text-sm font-bold bg-slate-50 text-blue-900 mb-3 focus:ring-2 focus:ring-blue-500 focus:outline-none"></select>
+
+                    <label class="block text-sm font-bold text-slate-700 mb-2">
+                        الصق قائمة المعلمين والإيميلات (سطر للاسم وسطر للإيميل):
+                    </label>
+                    <textarea id="bulkNamesInput" rows="7" placeholder="عبدالعزيز الفيفي
+a.alfaifi@moe.gov.sa
+عبدالله الشهري
+a.alshehri@moe.gov.sa" class="w-full border border-slate-300 rounded-xl p-3 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none leading-relaxed font-mono"></textarea>
+                    
+                    <div class="bg-blue-50 border border-blue-200 rounded-xl p-3 mt-2 text-xs text-blue-900 flex items-start gap-2">
+                        <i class="fa-solid fa-circle-info text-blue-800 text-sm mt-0.5"></i>
+                        <span><strong>طريقة التنسيق:</strong> الصق القائمة بحيث يكون <strong>اسم المعلم في سطر</strong>، و<strong>بريده الإلكتروني في السطر الذي يليه مباشرة</strong>.</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="p-4 bg-slate-50 border-t border-slate-100 flex justify-end gap-2">
+                <button id="cancelModalBtn" class="px-4 py-2 rounded-xl text-slate-600 hover:bg-slate-200 font-semibold text-sm transition">
+                    إلغاء
+                </button>
+                <button id="saveNamesBtn" class="bg-blue-900 hover:bg-blue-800 text-white px-5 py-2 rounded-xl font-semibold text-sm transition flex items-center gap-2">
+                    <i class="fa-solid fa-cloud-arrow-up"></i>
+                    حفظ وإدراج في السحابة
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Manage Groups / Departments Modal -->
+    <div id="groupsModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white rounded-2xl shadow-xl border border-slate-100 w-full max-w-md overflow-hidden transform transition-all">
+            <div class="p-5 bg-blue-900 text-white flex justify-between items-center">
+                <h3 class="text-lg font-bold flex items-center gap-2">
+                    <i class="fa-solid fa-folder-plus"></i>
+                    إدارة الأقسام والتخصصات
+                </h3>
+                <button onclick="closeManageGroupsModal()" class="text-blue-200 hover:text-white transition">
+                    <i class="fa-solid fa-xmark text-xl"></i>
+                </button>
+            </div>
+            
+            <div class="p-6 space-y-4">
+                <div class="flex gap-2">
+                    <input type="text" id="newGroupNameInput" placeholder="اسم القسم الجديد (مثلاً: العلوم)..." class="flex-grow border border-slate-300 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                    <button onclick="createNewGroup()" class="bg-blue-900 hover:bg-blue-800 text-white px-4 py-2 rounded-xl font-bold text-sm transition">
+                        إضافة
+                    </button>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 mb-2">الأقسام المعتمدة حالياً:</label>
+                    <ul id="groupsListContainer" class="space-y-2 max-h-60 overflow-y-auto custom-scrollbar"></ul>
+                </div>
+            </div>
+
+            <div class="p-4 bg-slate-50 border-t border-slate-100 flex justify-end">
+                <button onclick="closeManageGroupsModal()" class="px-5 py-2 rounded-xl bg-slate-200 text-slate-700 font-bold text-sm transition">
+                    إغلاق
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Share Report Modal -->
+    <div id="shareModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white rounded-2xl shadow-xl border border-slate-100 w-full max-w-md overflow-hidden transform transition-all">
+            <div class="p-5 bg-blue-900 text-white flex justify-between items-center">
+                <h3 class="text-lg font-bold flex items-center gap-2">
+                    <i class="fa-solid fa-paper-plane text-amber-300"></i>
+                    مشاركة التقرير الإشرافي
+                </h3>
+                <button onclick="closeShareModal()" class="text-blue-200 hover:text-white transition">
+                    <i class="fa-solid fa-xmark text-xl"></i>
+                </button>
+            </div>
+            
+            <div class="p-6 space-y-4">
+                <p class="text-xs text-slate-600 leading-relaxed font-semibold">
+                    يمكنك مشاركة هذا الرابط مع د/ عبد الله بن ظافر الشهري للاطلاع المباشر على تقارير وإحصائيات الحضور دون إمكانية التعديل:
+                </p>
+
+                <div class="bg-slate-100 p-3 rounded-xl border border-slate-200 flex items-center justify-between gap-2">
+                    <input type="text" id="shareUrlInput" readonly value="" class="bg-transparent text-xs font-mono font-bold text-slate-700 w-full focus:outline-none">
+                    <button onclick="copyShareUrl()" class="bg-blue-900 hover:bg-blue-800 text-white px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1 shrink-0">
+                        <i class="fa-regular fa-copy"></i>
+                        نسخ
+                    </button>
+                </div>
+
+                <div class="grid grid-cols-1 gap-2 pt-2">
+                    <button onclick="sendReportToWhatsAppManager()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 px-4 rounded-xl text-sm transition flex items-center justify-center gap-2 shadow">
+                        <i class="fa-brands fa-whatsapp text-lg"></i>
+                        إرسال ملخص التقرير عبر واتساب
+                    </button>
+                </div>
+            </div>
+
+            <div class="p-4 bg-slate-50 border-t border-slate-100 flex justify-end">
+                <button onclick="closeShareModal()" class="px-5 py-2 rounded-xl bg-slate-200 text-slate-700 font-bold text-sm transition">
+                    إغلاق
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="fixed bottom-5 left-5 bg-slate-800 text-white px-4 py-3 rounded-xl shadow-lg border border-slate-700 text-sm flex items-center gap-3 transition-all duration-300 opacity-0 pointer-events-none translate-y-2 z-50">
+        <i id="toastIcon" class="fa-solid fa-circle-check text-emerald-400"></i>
+        <span id="toastText">تم الحفظ بنجاح</span>
+    </div>
+
+    <script>
+        // إعدادات Firebase الخاصة بمشروعك (aaaa-a2380 / AAAA) من الصورة
+        const firebaseConfig = {
+            apiKey: "AIzaSyDhd5CSkNMoppGby6uKxHsQC",
+            authDomain: "aaaa-a2380.firebaseapp.com",
+            projectId: "aaaa-a2380",
+            storageBucket: "aaaa-a2380.firebasestorage.app",
+            messagingSenderId: "593036424543",
+            appId: "1:593036424543:web:b2f8f9e8391220ab2e72ea"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+
+        // Application State
+        let isReadOnly = false; 
+        let activeGroup = 'الجميع'; 
+        let groups = ['العلوم', 'الرياضيات', 'اللغة العربية', 'التربية الإسلامية', 'الحاسب الآلي'];
