@@ -316,7 +316,7 @@
                     <div class="flex flex-wrap items-center gap-3">
                         <span class="font-bold text-slate-700 text-sm flex items-center gap-2">
                             <i class="fa-solid fa-filter text-blue-900"></i>
-                            نطاق تقرير الإحصائيات التراكمية للكادر:
+                            نطاق تقرير الإحصائيات التراكمية (يعرض فقط المعلمين المسجل عليهم ملاحظات):
                         </span>
                         <div class="flex items-center gap-2 text-sm">
                             <label class="text-slate-500">من:</label>
@@ -365,7 +365,7 @@
                 <div class="p-4 bg-slate-50 border-b border-slate-200 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
                     <h3 class="font-bold text-slate-800 text-sm flex items-center gap-2">
                         <i class="fa-solid fa-users-viewfinder text-blue-900"></i>
-                        تقرير إحصائيات انضباط وتواجد المعلمين التراكمي
+                        تقرير المعلمين المسجل عليهم ملاحظات خلال الفترة المحددة
                     </h3>
                     <span id="liveCumulativeTimestamp" class="text-xs font-bold text-blue-900 bg-blue-50 px-3 py-1 rounded-lg border border-blue-100">وقت الإصدار: جاري التحميل...</span>
                 </div>
@@ -951,30 +951,31 @@ t789012@moe.gov.sa" class="w-full border border-slate-300 rounded-xl p-3 text-sm
 
             filteredForReport.forEach(s => {
                 const recordObj = dayRecords[s.id];
+                if (!recordObj) return; // تخطي المعلمين الذين ليس لهم ملاحظات في هذا اليوم
+
                 const status = typeof recordObj === 'object' && recordObj !== null ? recordObj.status : recordObj;
                 const timestamp = typeof recordObj === 'object' && recordObj !== null ? recordObj.time : '';
 
-                const timeSpan = timestamp ? `<span class="text-[9px] text-amber-200">(${timestamp})</span>` : '';
                 const li = document.createElement('li');
                 li.className = 'py-1 px-2 bg-white/10 rounded flex items-center justify-between';
-                li.innerHTML = `<span>${escapeHtml(s.name)}</span> ${timeSpan}`;
 
                 if (status === 'present') {
+                    li.innerHTML = `<span>${escapeHtml(s.name)}</span> <span class="text-[10px] text-emerald-300 font-mono">(${timestamp})</span>`;
                     presentList.appendChild(li);
                     pCount++;
                 } else if (status === 'absent') {
+                    li.innerHTML = `<span>${escapeHtml(s.name)}</span> <span class="text-[10px] text-rose-300 font-mono">(${timestamp})</span>`;
                     absentList.appendChild(li);
                     aCount++;
                 } else if (status === 'permission') {
+                    li.innerHTML = `<span>${escapeHtml(s.name)}</span> <span class="text-[10px] text-purple-300 font-mono">(${timestamp})</span>`;
                     permissionList.appendChild(li);
                     permCount++;
                 } else {
                     if (status === 'late') {
-                        li.innerHTML = `<span>${escapeHtml(s.name)}</span> <span class="text-[10px] text-amber-300 font-bold">(متأخر ${timestamp})</span>`;
+                        li.innerHTML = `<span>${escapeHtml(s.name)}</span> <span class="text-[10px] text-amber-300 font-bold">(متأخر - ${timestamp})</span>`;
                     } else if (status === 'excused') {
-                        li.innerHTML = `<span>${escapeHtml(s.name)}</span> <span class="text-[10px] text-blue-300 font-bold">(إجازة ${timestamp})</span>`;
-                    } else {
-                        li.innerHTML = `<span>${escapeHtml(s.name)}</span> <span class="text-[10px] text-slate-400">(لم يرصد)</span>`;
+                        li.innerHTML = `<span>${escapeHtml(s.name)}</span> <span class="text-[10px] text-blue-300 font-bold">(إجازة - ${timestamp})</span>`;
                     }
                     lateList.appendChild(li);
                     lCount++;
@@ -986,10 +987,10 @@ t789012@moe.gov.sa" class="w-full border border-slate-300 rounded-xl p-3 text-sm
             document.getElementById('dayPermissionCount').textContent = permCount;
             document.getElementById('dayLateCount').textContent = lCount;
 
-            if (pCount === 0) presentList.innerHTML = '<li class="text-slate-400 py-1">لا يوجد معلمين</li>';
-            if (aCount === 0) absentList.innerHTML = '<li class="text-slate-400 py-1">لا يوجد معلمين</li>';
-            if (permCount === 0) permissionList.innerHTML = '<li class="text-slate-400 py-1">لا يوجد معلمين</li>';
-            if (lCount === 0) lateList.innerHTML = '<li class="text-slate-400 py-1">لا يوجد معلمين</li>';
+            if (pCount === 0) presentList.innerHTML = '<li class="text-slate-400 py-1">لا توجد ملاحظات</li>';
+            if (aCount === 0) absentList.innerHTML = '<li class="text-slate-400 py-1">لا توجد ملاحظات</li>';
+            if (permCount === 0) permissionList.innerHTML = '<li class="text-slate-400 py-1">لا توجد ملاحظات</li>';
+            if (lCount === 0) lateList.innerHTML = '<li class="text-slate-400 py-1">لا توجد ملاحظات</li>';
         }
 
         function generateReport() {
@@ -1017,7 +1018,7 @@ t789012@moe.gov.sa" class="w-full border border-slate-300 rounded-xl p-3 text-sm
 
             let studentStats = {};
             activeStudents.forEach(s => {
-                studentStats[s.id] = { name: s.name, email: s.email, group: s.group, present: 0, absent: 0, permission: 0, late: 0, excused: 0 };
+                studentStats[s.id] = { name: s.name, email: s.email, group: s.group, present: 0, absent: 0, permission: 0, late: 0, excused: 0, hasActivity: false };
             });
 
             relevantDates.forEach(date => {
@@ -1026,6 +1027,11 @@ t789012@moe.gov.sa" class="w-full border border-slate-300 rounded-xl p-3 text-sm
                     if (studentStats[studentId]) {
                         const recordObj = dayRecords[studentId];
                         const st = typeof recordObj === 'object' && recordObj !== null ? recordObj.status : recordObj;
+                        
+                        if (st) {
+                            studentStats[studentId].hasActivity = true;
+                        }
+
                         if (st === 'present') { studentStats[studentId].present++; overallPresent++; }
                         else if (st === 'absent') { studentStats[studentId].absent++; overallAbsent++; }
                         else if (st === 'permission') { studentStats[studentId].permission++; overallPermission++; }
@@ -1044,12 +1050,15 @@ t789012@moe.gov.sa" class="w-full border border-slate-300 rounded-xl p-3 text-sm
 
             reportTableBody.innerHTML = '';
 
-            if (activeStudents.length === 0) {
-                reportTableBody.innerHTML = `<tr><td colspan="7" class="text-center p-6 text-slate-400">لا يوجد معلمين مضافين في هذا القسم لحساب التقرير</td></tr>`;
+            // تصفية المعلمين بحيث يظهر فقط من سُجلت عليهم ملاحظات خلال الفترة
+            const activeStudentsWithNotes = activeStudents.filter(student => studentStats[student.id].hasActivity);
+
+            if (activeStudentsWithNotes.length === 0) {
+                reportTableBody.innerHTML = `<tr><td colspan="7" class="text-center p-6 text-slate-400">لا توجد أي ملاحظات أو حالات رصد مسجلة للمعلمين في هذه الفترة المحددة</td></tr>`;
                 return;
             }
 
-            activeStudents.forEach((student) => {
+            activeStudentsWithNotes.forEach((student) => {
                 const stat = studentStats[student.id];
                 const totalEvaluated = stat.present + stat.absent + stat.permission + stat.late;
                 const attendanceRate = totalEvaluated > 0 ? Math.round(((stat.present + stat.permission) / totalEvaluated) * 100) : 0;
@@ -1091,19 +1100,26 @@ t789012@moe.gov.sa" class="w-full border border-slate-300 rounded-xl p-3 text-sm
                 return actGroup === 'الجميع' || sGroup === actGroup;
             });
 
-            if (activeStudents.length === 0) {
-                showToast('لا توجد بيانات للتصدير!', 'warning');
+            const relevantDates = Object.keys(allAttendanceRecords).filter(date => date >= start && date <= end);
+
+            let activeStudentsWithNotes = activeStudents.filter(student => {
+                return relevantDates.some(date => {
+                    const recordObj = (allAttendanceRecords[date] || {})[student.id];
+                    return recordObj && (typeof recordObj === 'object' ? recordObj.status : recordObj);
+                });
+            });
+
+            if (activeStudentsWithNotes.length === 0) {
+                showToast('لا توجد بيانات ملاحظات للتصدير في هذه الفترة!', 'warning');
                 return;
             }
 
-            const relevantDates = Object.keys(allAttendanceRecords).filter(date => date >= start && date <= end);
-
             let csvContent = "\uFEFF"; 
-            csvContent += `تقرير انضباط المعلمين - القسم: (${activeGroup}) من ${start} إلى ${end}\n`;
+            csvContent += `تقرير المعلمين المسجل عليهم ملاحظات - القسم: (${activeGroup}) من ${start} إلى ${end}\n`;
             csvContent += `تاريخ ووقت الإصدار: ${currentDt.dayName}، ${currentDt.date} - ${currentDt.time}\n`;
             csvContent += `اسم المعلم,البريد الإلكتروني,القسم/التخصص,أيام الحضور,أيام الغياب,أيام الاستئذان,التأخر/عذر,نسبة الحضور\n`;
 
-            activeStudents.forEach(student => {
+            activeStudentsWithNotes.forEach(student => {
                 let present = 0, absent = 0, permission = 0, late = 0, excused = 0;
                 relevantDates.forEach(date => {
                     const recordObj = (allAttendanceRecords[date] || {})[student.id];
@@ -1125,7 +1141,7 @@ t789012@moe.gov.sa" class="w-full border border-slate-300 rounded-xl p-3 text-sm
             const link = document.createElement("a");
             const url = URL.createObjectURL(blob);
             link.setAttribute("href", url);
-            link.setAttribute("download", `تقرير_حضور_المعلمين_${activeGroup}_${currentDate}.csv`);
+            link.setAttribute("download", `تقرير_ملاحظات_المعلمين_${activeGroup}_من_${start}_إلى_${end}.csv`);
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
