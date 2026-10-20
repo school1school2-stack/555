@@ -267,7 +267,7 @@
                             </span>
                             <span id="dayPresentCount" class="bg-emerald-500/20 text-emerald-300 text-xs px-2 py-0.5 rounded-full font-bold">0</span>
                         </div>
-                        <ul id="dayPresentList" class="space-y-1 max-h-48 overflow-y-auto custom-scrollbar text-xs text-emerald-100"></ul>
+                        <ul id="dayPresentList" class="space-y-2 max-h-48 overflow-y-auto custom-scrollbar text-xs text-emerald-100"></ul>
                     </div>
 
                     <div class="bg-rose-950/50 border border-rose-500/30 rounded-xl p-4">
@@ -277,7 +277,7 @@
                             </span>
                             <span id="dayAbsentCount" class="bg-rose-500/20 text-rose-300 text-xs px-2 py-0.5 rounded-full font-bold">0</span>
                         </div>
-                        <ul id="dayAbsentList" class="space-y-1 max-h-48 overflow-y-auto custom-scrollbar text-xs text-rose-100"></ul>
+                        <ul id="dayAbsentList" class="space-y-2 max-h-48 overflow-y-auto custom-scrollbar text-xs text-rose-100"></ul>
                     </div>
 
                     <div class="bg-purple-950/50 border border-purple-500/30 rounded-xl p-4">
@@ -287,7 +287,7 @@
                             </span>
                             <span id="dayPermissionCount" class="bg-purple-500/20 text-purple-300 text-xs px-2 py-0.5 rounded-full font-bold">0</span>
                         </div>
-                        <ul id="dayPermissionList" class="space-y-1 max-h-48 overflow-y-auto custom-scrollbar text-xs text-purple-100"></ul>
+                        <ul id="dayPermissionList" class="space-y-2 max-h-48 overflow-y-auto custom-scrollbar text-xs text-purple-100"></ul>
                     </div>
 
                     <div class="bg-amber-950/50 border border-amber-500/30 rounded-xl p-4">
@@ -297,7 +297,7 @@
                             </span>
                             <span id="dayLateCount" class="bg-amber-500/20 text-amber-300 text-xs px-2 py-0.5 rounded-full font-bold">0</span>
                         </div>
-                        <ul id="dayLateList" class="space-y-1 max-h-48 overflow-y-auto custom-scrollbar text-xs text-amber-100"></ul>
+                        <ul id="dayLateList" class="space-y-2 max-h-48 overflow-y-auto custom-scrollbar text-xs text-amber-100"></ul>
                     </div>
                 </div>
             </div>
@@ -705,29 +705,38 @@ t789012@moe.gov.sa" class="w-full border border-slate-300 rounded-xl p-3 text-sm
                 const timestamp = typeof recordObj === 'object' && recordObj !== null ? recordObj.time : '';
 
                 const li = document.createElement('li');
-                li.className = 'py-1 px-2 bg-white/10 rounded flex items-center justify-between';
+                li.className = 'py-2 px-3 bg-white/10 rounded-xl flex flex-col gap-1 border border-white/10 shadow-sm';
 
+                let statusBadgeHTML = '';
                 if (status === 'present') {
-                    li.innerHTML = `<span>${escapeHtml(s.name)}</span> <span class="text-[10px] text-emerald-300 font-mono">(${timestamp})</span>`;
-                    presentList.appendChild(li);
+                    statusBadgeHTML = `<span class="text-[11px] bg-emerald-500/20 text-emerald-300 px-2 py-0.5 rounded-md font-bold w-fit">حاضر</span>`;
                     pCount++;
+                    presentList.appendChild(li);
                 } else if (status === 'absent') {
-                    li.innerHTML = `<span>${escapeHtml(s.name)}</span> <span class="text-[10px] text-rose-300 font-mono">(${timestamp})</span>`;
-                    absentList.appendChild(li);
+                    statusBadgeHTML = `<span class="text-[11px] bg-rose-500/20 text-rose-300 px-2 py-0.5 rounded-md font-bold w-fit">غائب</span>`;
                     aCount++;
+                    absentList.appendChild(li);
                 } else if (status === 'permission') {
-                    li.innerHTML = `<span>${escapeHtml(s.name)}</span> <span class="text-[10px] text-purple-300 font-mono">(${timestamp})</span>`;
-                    permissionList.appendChild(li);
+                    statusBadgeHTML = `<span class="text-[11px] bg-purple-500/20 text-purple-300 px-2 py-0.5 rounded-md font-bold w-fit">مستأذن</span>`;
                     permCount++;
-                } else {
-                    if (status === 'late') {
-                        li.innerHTML = `<span>${escapeHtml(s.name)}</span> <span class="text-[10px] text-amber-300 font-bold">(متأخر - ${timestamp})</span>`;
-                    } else if (status === 'excused') {
-                        li.innerHTML = `<span>${escapeHtml(s.name)}</span> <span class="text-[10px] text-blue-300 font-bold">(إجازة - ${timestamp})</span>`;
-                    }
-                    lateList.appendChild(li);
+                    permissionList.appendChild(li);
+                } else if (status === 'late') {
+                    statusBadgeHTML = `<span class="text-[11px] bg-amber-500/20 text-amber-300 px-2 py-0.5 rounded-md font-bold w-fit">متأخر</span>`;
                     lCount++;
+                    lateList.appendChild(li);
+                } else if (status === 'excused') {
+                    statusBadgeHTML = `<span class="text-[11px] bg-blue-500/20 text-blue-300 px-2 py-0.5 rounded-md font-bold w-fit">إجازة / بعذر</span>`;
+                    lCount++;
+                    lateList.appendChild(li);
                 }
+
+                li.innerHTML = `
+                    <div class="font-bold text-white text-xs">${escapeHtml(s.name)}</div>
+                    <div class="flex items-center justify-between mt-1">
+                        ${statusBadgeHTML}
+                        ${timestamp ? `<span class="text-[11px] text-amber-300 font-mono font-medium bg-black/20 px-1.5 py-0.5 rounded">⏰ ${timestamp}</span>` : ''}
+                    </div>
+                `;
             });
 
             document.getElementById('dayPresentCount').textContent = pCount;
@@ -924,15 +933,45 @@ t789012@moe.gov.sa" class="w-full border border-slate-300 rounded-xl p-3 text-sm
                 let statusBadge = `<span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold bg-slate-100 text-slate-500">لم يرصد</span>`;
                 
                 if (status === 'present') {
-                    statusBadge = `<div class="flex flex-col items-center gap-0.5"><span class="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800"><i class="fa-solid fa-check text-emerald-600"></i> حاضر</span>${timestamp ? `<span class="text-[10px] text-slate-400 font-mono">⏰ ${timestamp}</span>` : ''}</div>`;
+                    statusBadge = `
+                        <div class="flex flex-col items-center gap-1">
+                            <span class="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800">
+                                <i class="fa-solid fa-check text-emerald-600"></i> حاضر
+                            </span>
+                            ${timestamp ? `<span class="text-[11px] bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded-md font-mono font-semibold border border-emerald-200">⏰ ${timestamp}</span>` : ''}
+                        </div>`;
                 } else if (status === 'absent') {
-                    statusBadge = `<div class="flex flex-col items-center gap-0.5"><span class="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold bg-rose-100 text-rose-800"><i class="fa-solid fa-xmark text-rose-600"></i> غائب</span>${timestamp ? `<span class="text-[10px] text-slate-400 font-mono">⏰ ${timestamp}</span>` : ''}</div>`;
+                    statusBadge = `
+                        <div class="flex flex-col items-center gap-1">
+                            <span class="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold bg-rose-100 text-rose-800">
+                                <i class="fa-solid fa-xmark text-rose-600"></i> غائب
+                            </span>
+                            ${timestamp ? `<span class="text-[11px] bg-rose-50 text-rose-700 px-2 py-0.5 rounded-md font-mono font-semibold border border-rose-200">⏰ ${timestamp}</span>` : ''}
+                        </div>`;
                 } else if (status === 'permission') {
-                    statusBadge = `<div class="flex flex-col items-center gap-0.5"><span class="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold bg-purple-100 text-purple-800"><i class="fa-solid fa-person-walking-arrow-right text-purple-600"></i> مستأذن</span>${timestamp ? `<span class="text-[10px] text-slate-400 font-mono">⏰ ${timestamp}</span>` : ''}</div>`;
+                    statusBadge = `
+                        <div class="flex flex-col items-center gap-1">
+                            <span class="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold bg-purple-100 text-purple-800">
+                                <i class="fa-solid fa-person-walking-arrow-right text-purple-600"></i> مستأذن
+                            </span>
+                            ${timestamp ? `<span class="text-[11px] bg-purple-50 text-purple-700 px-2 py-0.5 rounded-md font-mono font-semibold border border-purple-200">⏰ ${timestamp}</span>` : ''}
+                        </div>`;
                 } else if (status === 'late') {
-                    statusBadge = `<div class="flex flex-col items-center gap-0.5"><span class="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-800"><i class="fa-solid fa-clock text-amber-600"></i> متأخر</span>${timestamp ? `<span class="text-[10px] text-slate-400 font-mono">⏰ ${timestamp}</span>` : ''}</div>`;
+                    statusBadge = `
+                        <div class="flex flex-col items-center gap-1">
+                            <span class="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-800">
+                                <i class="fa-solid fa-clock text-amber-600"></i> متأخر
+                            </span>
+                            ${timestamp ? `<span class="text-[11px] bg-amber-50 text-amber-700 px-2 py-0.5 rounded-md font-mono font-semibold border border-amber-200">⏰ ${timestamp}</span>` : ''}
+                        </div>`;
                 } else if (status === 'excused') {
-                    statusBadge = `<div class="flex flex-col items-center gap-0.5"><span class="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold bg-blue-100 text-blue-800"><i class="fa-solid fa-file-signature text-blue-600"></i> إجازة / بعذر</span>${timestamp ? `<span class="text-[10px] text-slate-400 font-mono">⏰ ${timestamp}</span>` : ''}</div>`;
+                    statusBadge = `
+                        <div class="flex flex-col items-center gap-1">
+                            <span class="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold bg-blue-100 text-blue-800">
+                                <i class="fa-solid fa-file-signature text-blue-600"></i> إجازة / بعذر
+                            </span>
+                            ${timestamp ? `<span class="text-[11px] bg-blue-50 text-blue-700 px-2 py-0.5 rounded-md font-mono font-semibold border border-blue-200">⏰ ${timestamp}</span>` : ''}
+                        </div>`;
                 }
 
                 if (isReadOnly) {
