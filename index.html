@@ -227,7 +227,7 @@
                             <tr class="bg-slate-100/80 text-slate-600 text-xs uppercase font-bold border-b border-slate-200">
                                 <th class="p-4">بيانات المعلم (الاسم والبريد)</th>
                                 <th class="p-4 text-center w-36">التخصص / القسم</th>
-                                <th class="p-4 text-center">الحالة اليوم</th>
+                                <th class="p-4 text-center">الحالة اليوم ووقت الرصد</th>
                                 <th class="p-4 text-center edit-column">تحديد الحالة الإشرافية</th>
                                 <th class="p-4 text-center w-28 edit-column">إجراءات</th>
                             </tr>
@@ -532,7 +532,6 @@ t789012@moe.gov.sa" class="w-full border border-slate-300 rounded-xl p-3 text-sm
             appId: "1:593036424543:web:b2f8f9e8391220ab2e72ea"
         };
 
-        // التحقق من تهيئة فايبربيز لمنع تكرار التهيئة
         if (!firebase.apps.length) {
             firebase.initializeApp(firebaseConfig);
         }
@@ -667,7 +666,7 @@ t789012@moe.gov.sa" class="w-full border border-slate-300 rounded-xl p-3 text-sm
                 cloudIcon.className = "fa-solid fa-cloud text-emerald-400";
             }, (error) => {
                 console.error("Cloud connection error:", error);
-                cloudStatus.textContent = "خطأ في الاتصال بالسحابة (تحقق من القواعد)";
+                cloudStatus.textContent = "خطأ في الاتصال بالسحابة";
                 cloudIcon.className = "fa-solid fa-cloud text-rose-400";
             });
 
@@ -951,10 +950,14 @@ t789012@moe.gov.sa" class="w-full border border-slate-300 rounded-xl p-3 text-sm
             });
 
             filteredForReport.forEach(s => {
-                const status = dayRecords[s.id];
+                const recordObj = dayRecords[s.id];
+                const status = typeof recordObj === 'object' && recordObj !== null ? recordObj.status : recordObj;
+                const timestamp = typeof recordObj === 'object' && recordObj !== null ? recordObj.time : '';
+
+                const timeSpan = timestamp ? `<span class="text-[9px] text-amber-200">(${timestamp})</span>` : '';
                 const li = document.createElement('li');
                 li.className = 'py-1 px-2 bg-white/10 rounded flex items-center justify-between';
-                li.innerHTML = `<span>${escapeHtml(s.name)}</span><span class="text-[10px] text-blue-200 font-normal">(${escapeHtml(s.group)})</span>`;
+                li.innerHTML = `<span>${escapeHtml(s.name)}</span> ${timeSpan}`;
 
                 if (status === 'present') {
                     presentList.appendChild(li);
@@ -967,9 +970,9 @@ t789012@moe.gov.sa" class="w-full border border-slate-300 rounded-xl p-3 text-sm
                     permCount++;
                 } else {
                     if (status === 'late') {
-                        li.innerHTML = `<span>${escapeHtml(s.name)}</span> <span class="text-[10px] text-amber-300 font-bold">(متأخر)</span>`;
+                        li.innerHTML = `<span>${escapeHtml(s.name)}</span> <span class="text-[10px] text-amber-300 font-bold">(متأخر ${timestamp})</span>`;
                     } else if (status === 'excused') {
-                        li.innerHTML = `<span>${escapeHtml(s.name)}</span> <span class="text-[10px] text-blue-300 font-bold">(إجازة/بعذر)</span>`;
+                        li.innerHTML = `<span>${escapeHtml(s.name)}</span> <span class="text-[10px] text-blue-300 font-bold">(إجازة ${timestamp})</span>`;
                     } else {
                         li.innerHTML = `<span>${escapeHtml(s.name)}</span> <span class="text-[10px] text-slate-400">(لم يرصد)</span>`;
                     }
@@ -1021,7 +1024,8 @@ t789012@moe.gov.sa" class="w-full border border-slate-300 rounded-xl p-3 text-sm
                 const dayRecords = allAttendanceRecords[date] || {};
                 Object.keys(dayRecords).forEach(studentId => {
                     if (studentStats[studentId]) {
-                        const st = dayRecords[studentId];
+                        const recordObj = dayRecords[studentId];
+                        const st = typeof recordObj === 'object' && recordObj !== null ? recordObj.status : recordObj;
                         if (st === 'present') { studentStats[studentId].present++; overallPresent++; }
                         else if (st === 'absent') { studentStats[studentId].absent++; overallAbsent++; }
                         else if (st === 'permission') { studentStats[studentId].permission++; overallPermission++; }
@@ -1102,7 +1106,8 @@ t789012@moe.gov.sa" class="w-full border border-slate-300 rounded-xl p-3 text-sm
             activeStudents.forEach(student => {
                 let present = 0, absent = 0, permission = 0, late = 0, excused = 0;
                 relevantDates.forEach(date => {
-                    const st = (allAttendanceRecords[date] || {})[student.id];
+                    const recordObj = (allAttendanceRecords[date] || {})[student.id];
+                    const st = typeof recordObj === 'object' && recordObj !== null ? recordObj.status : recordObj;
                     if (st === 'present') present++;
                     else if (st === 'absent') absent++;
                     else if (st === 'permission') permission++;
@@ -1163,21 +1168,25 @@ t789012@moe.gov.sa" class="w-full border border-slate-300 rounded-xl p-3 text-sm
             studentsTableBody.innerHTML = '';
 
             filteredStudents.forEach((student) => {
-                const status = attendanceData[student.id] || 'unmarked';
+                const recordObj = attendanceData[student.id];
+                const status = typeof recordObj === 'object' && recordObj !== null ? recordObj.status : (recordObj || 'unmarked');
+                const timestamp = typeof recordObj === 'object' && recordObj !== null ? recordObj.time : '';
+
                 const row = document.createElement('tr');
                 row.className = 'hover:bg-slate-50 transition border-b border-slate-100';
 
                 let statusBadge = `<span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold bg-slate-100 text-slate-500">لم يرصد</span>`;
+                
                 if (status === 'present') {
-                    statusBadge = `<span class="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800"><i class="fa-solid fa-check text-emerald-600"></i> حاضر</span>`;
+                    statusBadge = `<div class="flex flex-col items-center gap-0.5"><span class="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800"><i class="fa-solid fa-check text-emerald-600"></i> حاضر</span>${timestamp ? `<span class="text-[10px] text-slate-400 font-mono">⏰ ${timestamp}</span>` : ''}</div>`;
                 } else if (status === 'absent') {
-                    statusBadge = `<span class="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold bg-rose-100 text-rose-800"><i class="fa-solid fa-xmark text-rose-600"></i> غائب</span>`;
+                    statusBadge = `<div class="flex flex-col items-center gap-0.5"><span class="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold bg-rose-100 text-rose-800"><i class="fa-solid fa-xmark text-rose-600"></i> غائب</span>${timestamp ? `<span class="text-[10px] text-slate-400 font-mono">⏰ ${timestamp}</span>` : ''}</div>`;
                 } else if (status === 'permission') {
-                    statusBadge = `<span class="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold bg-purple-100 text-purple-800"><i class="fa-solid fa-person-walking-arrow-right text-purple-600"></i> مستأذن</span>`;
+                    statusBadge = `<div class="flex flex-col items-center gap-0.5"><span class="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold bg-purple-100 text-purple-800"><i class="fa-solid fa-person-walking-arrow-right text-purple-600"></i> مستأذن</span>${timestamp ? `<span class="text-[10px] text-slate-400 font-mono">⏰ ${timestamp}</span>` : ''}</div>`;
                 } else if (status === 'late') {
-                    statusBadge = `<span class="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-800"><i class="fa-solid fa-clock text-amber-600"></i> متأخر</span>`;
+                    statusBadge = `<div class="flex flex-col items-center gap-0.5"><span class="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-800"><i class="fa-solid fa-clock text-amber-600"></i> متأخر</span>${timestamp ? `<span class="text-[10px] text-slate-400 font-mono">⏰ ${timestamp}</span>` : ''}</div>`;
                 } else if (status === 'excused') {
-                    statusBadge = `<span class="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold bg-blue-100 text-blue-800"><i class="fa-solid fa-file-signature text-blue-600"></i> إجازة / بعذر</span>`;
+                    statusBadge = `<div class="flex flex-col items-center gap-0.5"><span class="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold bg-blue-100 text-blue-800"><i class="fa-solid fa-file-signature text-blue-600"></i> إجازة / بعذر</span>${timestamp ? `<span class="text-[10px] text-slate-400 font-mono">⏰ ${timestamp}</span>` : ''}</div>`;
                 }
 
                 if (isReadOnly) {
@@ -1245,7 +1254,12 @@ t789012@moe.gov.sa" class="w-full border border-slate-300 rounded-xl p-3 text-sm
             if (status === 'unmarked' || status === '') {
                 delete updatedRecords[studentId];
             } else {
-                updatedRecords[studentId] = status;
+                const now = new Date();
+                const timeString = now.toLocaleTimeString('ar-SA', { hour: '2-digit', minute: '2-digit' });
+                updatedRecords[studentId] = {
+                    status: status,
+                    time: timeString
+                };
             }
 
             try {
@@ -1254,7 +1268,7 @@ t789012@moe.gov.sa" class="w-full border border-slate-300 rounded-xl p-3 text-sm
                     updatedAt: firebase.firestore.FieldValue.serverTimestamp()
                 }, { merge: true });
 
-                showToast('تم حفظ حالة الحضور سحابياً ☁️', 'cloud');
+                showToast('تم حفظ حالة الحضور والوقت سحابياً ☁️', 'cloud');
             } catch (error) {
                 console.error("Error saving status:", error);
                 showToast('فشل الحفظ في السحابة', 'warning');
@@ -1283,7 +1297,8 @@ t789012@moe.gov.sa" class="w-full border border-slate-300 rounded-xl p-3 text-sm
             });
 
             activeStudents.forEach(student => {
-                const status = attendanceData[student.id];
+                const recordObj = attendanceData[student.id];
+                const status = typeof recordObj === 'object' && recordObj !== null ? recordObj.status : recordObj;
                 if (status === 'present') presentCount++;
                 else if (status === 'absent') absentCount++;
                 else if (status === 'permission') permissionCount++;
@@ -1446,13 +1461,16 @@ t789012@moe.gov.sa" class="w-full border border-slate-300 rounded-xl p-3 text-sm
             csvContent += `اسم المعلم,البريد الإلكتروني,القسم/التخصص,حالة الحضور - تاريخ: ${currentDate}\n`;
 
             activeStudents.forEach(student => {
-                const status = attendanceData[student.id] || 'لم يرصد';
+                const recordObj = attendanceData[student.id];
+                const status = typeof recordObj === 'object' && recordObj !== null ? recordObj.status : (recordObj || 'لم يرصد');
+                const timeStr = typeof recordObj === 'object' && recordObj !== null ? recordObj.time : '';
+
                 let translatedStatus = 'لم يرصد';
-                if (status === 'present') translatedStatus = 'حاضر';
-                if (status === 'absent') translatedStatus = 'غائب';
-                if (status === 'permission') translatedStatus = 'مستأذن';
-                if (status === 'late') translatedStatus = 'متأخر';
-                if (status === 'excused') translatedStatus = 'إجازة/بعذر';
+                if (status === 'present') translatedStatus = `حاضر (${timeStr})`;
+                if (status === 'absent') translatedStatus = `غائب (${timeStr})`;
+                if (status === 'permission') translatedStatus = `مستأذن (${timeStr})`;
+                if (status === 'late') translatedStatus = `متأخر (${timeStr})`;
+                if (status === 'excused') translatedStatus = `إجازة/بعذر (${timeStr})`;
 
                 csvContent += `"${student.name.replace(/"/g, '""')}","${student.email}","${student.group}","${translatedStatus}"\n`;
             });
@@ -1501,7 +1519,8 @@ t789012@moe.gov.sa" class="w-full border border-slate-300 rounded-xl p-3 text-sm
             relevantDates.forEach(date => {
                 const dayRecords = allAttendanceRecords[date] || {};
                 activeStudents.forEach(s => {
-                    const st = dayRecords[s.id];
+                    const recordObj = dayRecords[s.id];
+                    const st = typeof recordObj === 'object' && recordObj !== null ? recordObj.status : recordObj;
                     if (st === 'present') overallPresent++;
                     else if (st === 'absent') overallAbsent++;
                     else if (st === 'permission') overallPermission++;
