@@ -609,6 +609,7 @@ t789012@moe.gov.sa" class="w-full border border-slate-300 rounded-xl p-3 text-sm
                     });
                 });
 
+                // ترتيب المعلمين أبجديًا تلقائيًا
                 students.sort((a, b) => a.name.localeCompare(b.name, 'ar'));
                 fetchAttendanceForDate(currentDate);
                 cloudStatus.textContent = "السحابة: متصل ومزامن (aaaa-a2380)";
@@ -699,7 +700,7 @@ t789012@moe.gov.sa" class="w-full border border-slate-300 rounded-xl p-3 text-sm
 
             students.forEach(s => {
                 const recordObj = dayRecords[s.id];
-                if (!recordObj) return; // تخطي المعلمين الذين ليس لهم ملاحظات في هذا اليوم
+                if (!recordObj) return; 
 
                 const status = typeof recordObj === 'object' && recordObj !== null ? recordObj.status : recordObj;
                 const timestamp = typeof recordObj === 'object' && recordObj !== null ? recordObj.time : '';
@@ -910,6 +911,7 @@ t789012@moe.gov.sa" class="w-full border border-slate-300 rounded-xl p-3 text-sm
                 return s.name.toLowerCase().includes(searchTerm) || s.email.toLowerCase().includes(searchTerm);
             });
 
+            // التأكد من الترتيب الأبجدي أيضاً بعد الفلترة أو البحث
             filteredStudents.sort((a, b) => a.name.localeCompare(b.name, 'ar'));
 
             if (filteredStudents.length === 0) {
